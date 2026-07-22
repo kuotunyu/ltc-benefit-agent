@@ -27,7 +27,7 @@
 - README 開頭要有一段第一人稱動機（我會提供或請你依專案主題擬一段自然的個人動機供我修改）
 
 ## Git 與交付規範
-- Conventional Commits 風格；每完成一個小功能就 commit，禁止巨型單一 commit
+- Conventional Commits 風格；commit 主旨與內文以正體中文（zh-TW）為主，專有名詞保留原文；每完成一個小功能就 commit，禁止巨型單一 commit
 - 模型權重與大型資料不進 git：權重上傳 Hugging Face，資料寫下載腳本
 - repo 附 MIT LICENSE；使用政府開放資料處在 README 註明資料來源與授權
 - README.md 繁體中文，必含：個人動機段、mermaid 架構圖、模型選型說明（台灣模型 vs 基準模型對照表）、快速開始、評估結果、成本估算
