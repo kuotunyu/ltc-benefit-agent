@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import json
-import re
 from enum import StrEnum
 from typing import Any, NotRequired
 from uuid import uuid4
@@ -19,6 +18,8 @@ from langchain.agents.middleware import (
 )
 from langchain.agents.middleware.types import AgentState
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
+
+from .intake import explicit_cms_intent
 
 
 class WorkflowGuardState(AgentState):
@@ -43,10 +44,6 @@ _MAX_NUDGES_PER_INVOCATION = 3
 CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE = (
     "[INTERFACE_COMPARE_HISTORICAL_SNAPSHOT=true; "
     "PRIMARY_RULE=CURRENT_2026_07]"
-)
-
-_EXPLICIT_CMS_PATTERN = re.compile(
-    r"(?<![A-Za-z])CMS\s*(?:等級)?\s*[:：]?\s*[2-8](?!\d)", re.IGNORECASE
 )
 
 _STAGE_PROMPTS = {
@@ -150,11 +147,8 @@ def _explicit_compare_legacy(messages: list[BaseMessage]) -> bool:
 
 
 def _human_provided_explicit_cms(messages: list[BaseMessage]) -> bool:
-    return any(
-        isinstance(message, HumanMessage)
-        and _EXPLICIT_CMS_PATTERN.search(_message_text(message))
-        for message in messages
-    )
+    was_stated, level = explicit_cms_intent(messages)
+    return was_stated and level is not None
 
 
 def _build_report_tool_call(

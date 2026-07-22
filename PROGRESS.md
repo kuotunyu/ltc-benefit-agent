@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub／公開 Space 已同步至 `3250ed2` 且為 `RUNNING`。公開已知 CMS／一般戶案例從草稿、金額到單次人工核准全數通過，session 與重複 approve 缺陷已修復。
-- **本次完成**：公開 Space 單次按下「核准並發布」後，介面明示不可重按的「已核准並發布」、隱藏拒絕按鈕且沒有 `common.error`；發布內容與草稿一致。
-- **實跑總證據**：Hugging Face API 回報 `3250ed2`、stage `RUNNING`、CPU Basic；公開報告為 `CURRENT_2026_07`、第三類、16%、政府給付 15,120 元、額度內部分負擔／合計自付 2,880 元、超額 0 元。零模型 Playwright 輸出 `UI_SMOKE_OK`；`uv lock --check`、完整 pytest **508 passed in 3.40s**、sdist／wheel build 均成功。
-- **Context7**：以 `/gradio-app/gradio` 查證多輸出 callback、元件更新與 `gr.State(uuid4)` 的 session state 用法；LangChain 既有查證仍見 Phase 日誌。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；公開 Space `dcb45a9` 為 `RUNNING`。已知 CMS／一般戶／單次核准案例通過；unknown CMS 公開案例抓到「2 至 8 級參考表」被誤判為 CMS 2 的缺陷，本機修正與測試已完成，尚待作者部署複驗。
+- **本次完成**：CMS parser 現在區分正式個人等級、明確 unknown 與 2–8 參考範圍；unknown 會鎖定 `official_cms_level=null`，model response／tool call 兩層都禁止個人 `copay_estimate`。同句同時列出需協助與不需協助活動時，只要有一項明確需協助即保留失能需求。
+- **實跑總證據**：公開 `dcb45a9` 的 unknown CMS smoke **失敗**，截圖顯示錯誤 CMS 2／第三類／16%／政府給付 8,417 元／自付 1,603 元，作者未核准。修正後以相同完整原句及故意猜 CMS 2 的假模型回歸，成功工具僅 `eligibility_check → build_report_draft`；`uv lock --check`、完整 pytest **514 passed in 3.22s**、sdist／wheel build 均成功。
+- **Context7**：以 `/websites/langchain_oss_python` 再確認 `AgentMiddleware.state_schema`、`ModelRequest.override` 與 `wrap_tool_call` 的現行介面後實作雙層 guard；既有 Gradio 查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 以全新 Space session 驗證 unknown CMS：不得推估個人等級或金額，只能顯示 CMS 2–8 參考表與 1966 指引。
+  1. 由作者提交並同步本輪 unknown CMS 修正至 GitHub／Space；待 Space 回到 Running 後以同一完整原句重新驗證，不得出現個人 CMS、政府給付或合計自付。
   2. 以手機寬度完成公開 UI smoke，確認輸入、追問、報告校閱與核准操作可用。
   3. 若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限；完成公開 smoke 後再決定 `phase-4` tag／Release。
 - **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：功能修正已由作者以 `3250ed2` 同步 `origin`／`space`；本次公開驗收證據只更新 `PROGRESS.md`，待作者自行提交。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：Space SSR 不宜用 `request.session_hash` 作跨事件唯一鍵；Gradio 6 對事件來源 Button 的 `visible=False` 不可靠，完成態應 disabled 並明示；福利類別與版本比較仍須走確定性正規化；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：本輪 `intake.py`、`workflow.py`、Agent 測試與 PLAN／PROGRESS 待作者自行提交，再依序 Push `origin`／`space`。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：CMS 範圍文字不能用單一等級 regex 截取；Space SSR 不宜用 `request.session_hash` 作跨事件唯一鍵；Gradio 6 對事件來源 Button 的 `visible=False` 不可靠；福利類別與版本比較仍須走確定性正規化；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -509,3 +509,11 @@
   - 作者以全新公開 Space session 重跑已知 CMS 4、一般戶、無外籍看護、預計服務費 18,000 元案例；報告維持現制、第三類、16%、原始／調整後月額 18,580 元、政府給付 15,120 元、額度內部分負擔／合計自付 2,880 元、超額 0 元。
   - 單次按下「核准並發布」後，畫面改為不可重按的「已核准並發布」，拒絕操作消失，未出現 `common.error`；公開最終內容與核准前草稿數字一致。因此 D39 的 stable session、冪等 approve 與明確完成狀態通過公開端到端驗收。
   - 成本與 Git：作者手動 Space 對話會使用 Gemini，但頁面沒有 usage metadata，實際費用以帳單為準；Agent 未另發付費請求、未讀取 `.env`、未執行 Git。本次僅有 `PROGRESS.md` 驗收紀錄待作者自行提交，建議 commit：`docs: 記錄 Space 核准流程公開驗收`。
+
+- **2026-07-23（unknown CMS 公開驗收失敗與雙層防護修正）**：
+  - 作者在全新公開 Space session 輸入完整 unknown CMS 情境，明確寫出尚未正式評估、不知道等級、不要推估，並要求 CMS 2 至 8 級參考表。公開 `dcb45a9` 卻產生 CMS 2、第三類、16%、政府給付 8,417 元與合計自付 1,603 元的個人試算；作者未按核准。
+  - 根因是 intake／workflow 的舊 regex 把「CMS 2 至 8」前半段截成正式 CMS 2。修正新增參考範圍排除、明確 unknown 語句、正式單級與跨輪最新意圖覆寫；明確 unknown 會同時保存 `official_cms_level=None` 與 `cms_level=None`。
+  - model response guard 會把 unknown CMS 下的猜測 `copay_estimate` 改成 `build_report_draft`；tool call guard 再獨立拒絕任何漏網試算。build report 強制使用 null CMS 並移除個人金額欄位。workflow 共用同一 parser，不再自行用較寬鬆 regex 判斷。
+  - 同一公開句子同時含「洗澡、穿衣需要協助」與「吃飯、走動、如廁不需要協助」，也揭露舊 boolean parser 的負向片段可能蓋過正向需求；修正為有任一項明確需協助即為 True，只有純負向敘述才為 False，並補上「住在家裡」字面辨識。
+  - 回歸假模型刻意送出 CMS 2 並嘗試呼叫金額工具；實際成功 trace 只有 `eligibility_check → build_report_draft`，資格 artifact 的 CMS 為 null，草稿顯示「CMS 未知：僅提供額度參考」、完整 2–8 表，且沒有政府給付或合計自付。相關 8 passed、Agent **41 passed in 0.97s**。
+  - 最終證據：依 Context7 `/websites/langchain_oss_python` 查證 middleware 現行 API；`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.22s**、sdist／wheel build 均成功。沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git。建議 commit：`fix(agent): 阻止未知 CMS 被誤判為個人等級`。

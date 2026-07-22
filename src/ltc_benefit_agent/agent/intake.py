@@ -50,13 +50,35 @@ _INITIAL_RETRY_MARKER = "INITIAL_ELIGIBILITY_TOOL_RETRY"
 _TOOL_CALL_CODE_FENCE = re.compile(
     r"^\s*```(?:tool_call|json)\s*(\{.*\})\s*```\s*$", re.DOTALL
 )
-_EXPLICIT_CMS_PATTERN = re.compile(
-    r"(?<![A-Za-z])CMS\s*(?:等級)?\s*[:：]?\s*[2-8](?!\d)", re.IGNORECASE
-)
-
 _AGE_PATTERN = re.compile(r"(?<!\d)(\d{1,3})\s*歲")
 _CMS_LEVEL_PATTERN = re.compile(
     r"(?<![A-Za-z])CMS\s*(?:等級)?\s*[:：]?\s*([2-8])(?!\d)", re.IGNORECASE
+)
+_CMS_REFERENCE_RANGE_PATTERN = re.compile(
+    r"(?<![A-Za-z])CMS\s*(?:等級)?\s*[:：]?\s*[2-8]\s*"
+    r"(?:至|到|[-–—~～])\s*[2-8]\s*(?:級)?",
+    re.IGNORECASE,
+)
+_CMS_UNKNOWN_PATTERNS = (
+    re.compile(
+        r"(?:尚未|還沒|未曾|沒有)\s*(?:接受|進行|做|取得|獲得)?\s*"
+        r"(?:正式)?\s*CMS(?:\s*(?:評估|等級|結果))?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:不知道|不清楚|未知|尚不確定|無法確認)\s*(?:正式)?\s*"
+        r"CMS(?:\s*等級)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?<![A-Za-z])CMS(?:\s*等級)?\s*"
+        r"(?:未知|不知道|不清楚|尚未評估|未評估|不確定)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:不要|不得|請勿)\s*(?:推估|猜測|臆測)\s*(?:正式)?\s*CMS",
+        re.IGNORECASE,
+    ),
 )
 _DURATION_PATTERNS = (
     re.compile(
@@ -177,6 +199,38 @@ def _explicit_bool(
     return None
 
 
+def explicit_cms_intent(messages: list[BaseMessage]) -> tuple[bool, int | None]:
+    """回傳使用者最新的正式 CMS 意圖；參考範圍不視為個人等級。
+
+    第一個布林值表示使用者是否明確談到自己的 CMS 狀態；第二個值為
+    正式等級，或在明確表示尚未評估／不知道時為 ``None``。單純要求
+    「CMS 2 至 8 級參考表」會回傳 ``(False, None)``。
+    """
+
+    latest: tuple[int, int | None] | None = None
+    offset = 0
+    for message in messages:
+        if not isinstance(message, HumanMessage):
+            continue
+        text = _message_text(message)
+        range_spans = [match.span() for match in _CMS_REFERENCE_RANGE_PATTERN.finditer(text)]
+        for match in _CMS_LEVEL_PATTERN.finditer(text):
+            if any(start <= match.start() < end for start, end in range_spans):
+                continue
+            candidate = (offset + match.start(), int(match.group(1)))
+            if latest is None or candidate[0] >= latest[0]:
+                latest = candidate
+        for pattern in _CMS_UNKNOWN_PATTERNS:
+            for match in pattern.finditer(text):
+                candidate = (offset + match.start(), None)
+                if latest is None or candidate[0] >= latest[0]:
+                    latest = candidate
+        offset += len(text) + 1
+    if latest is None:
+        return False, None
+    return True, latest[1]
+
+
 def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
     """只擷取格式明確、可逐字核對的欄位，不從疾病或年齡推定失能。"""
 
@@ -187,9 +241,6 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
         text = _message_text(message)
         if match := _AGE_PATTERN.search(text):
             facts["age"] = int(match.group(1))
-        if match := _CMS_LEVEL_PATTERN.search(text):
-            facts["official_cms_level"] = int(match.group(1))
-
         boolean_specs = {
             "indigenous": (
                 (r"不是原住民", r"非原住民"),
@@ -216,22 +267,38 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
             "has_functional_impairment": (
                 (r"不需要(?:他人)?協助", r"無需(?:他人)?協助", r"沒有失能"),
                 (
-                    r"生活需要協助",
-                    r"需要生活協助",
-                    r"需要(?:他人)?協助",
+                    r"生活(?<!不)需要協助",
+                    r"(?<!不)需要生活協助",
+                    r"(?<!不)需要(?:他人)?協助",
                     r"生活協助需求",
                     r"目前需要協助",
                     r"失能\s*\d+\s*(?:個)?月",
-                    r"(?:洗澡|穿衣|吃飯|走動|如廁).{0,20}需要.*協助",
+                    r"(?:洗澡|穿衣|吃飯|起身走動|走動|如廁)"
+                    r".{0,20}(?<!不)需要.*協助",
                 ),
             ),
         }
         for field, (false_patterns, true_patterns) in boolean_specs.items():
-            value = _explicit_bool(
-                text,
-                false_patterns=tuple(false_patterns),
-                true_patterns=tuple(true_patterns),
-            )
+            if field == "has_functional_impairment":
+                # 同一句可能同時列出「洗澡需協助、吃飯不需協助」。只要有
+                # 一項明確需要協助即為 True；只有負向敘述時才是 False。
+                value = _explicit_bool(
+                    text,
+                    false_patterns=(),
+                    true_patterns=tuple(true_patterns),
+                )
+                if value is None:
+                    value = _explicit_bool(
+                        text,
+                        false_patterns=tuple(false_patterns),
+                        true_patterns=(),
+                    )
+            else:
+                value = _explicit_bool(
+                    text,
+                    false_patterns=tuple(false_patterns),
+                    true_patterns=tuple(true_patterns),
+                )
             if value is not None:
                 facts[field] = value
 
@@ -244,9 +311,12 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
             facts["residence_status"] = "RESIDENTIAL_INSTITUTION"
         elif "團體家屋" in text:
             facts["residence_status"] = "GROUP_HOME"
-        elif "住家裡" in text or "居家" in text:
+        elif "住家裡" in text or "住在家裡" in text or "居家" in text:
             facts["residence_status"] = "COMMUNITY"
 
+    cms_was_stated, cms_level = explicit_cms_intent(messages)
+    if cms_was_stated:
+        facts["official_cms_level"] = cms_level
     facts["rule_version"] = _desired_rule_version(messages)
     return facts
 
@@ -257,8 +327,6 @@ def _explicit_copay_facts(messages: list[BaseMessage]) -> dict[str, Any]:
         if not isinstance(message, HumanMessage):
             continue
         text = _message_text(message)
-        if match := _CMS_LEVEL_PATTERN.search(text):
-            facts["cms_level"] = int(match.group(1))
         category_matches = list(_WELFARE_CATEGORY_PATTERN.finditer(text))
         if category_matches:
             latest = category_matches[-1]
@@ -281,6 +349,9 @@ def _explicit_copay_facts(messages: list[BaseMessage]) -> dict[str, Any]:
             facts["has_foreign_caregiver"] = caregiver
         if match := _PLANNED_SPEND_PATTERN.search(text):
             facts["planned_spend"] = int(match.group(1).replace(",", ""))
+    cms_was_stated, cms_level = explicit_cms_intent(messages)
+    if cms_was_stated:
+        facts["cms_level"] = cms_level
     facts["rule_version"] = _desired_rule_version(messages)
     return facts
 
@@ -412,6 +483,13 @@ def _guard_tool_call(request: ToolCallRequest) -> ToolCallRequest | ToolMessage:
     name = request.tool_call["name"]
     args = request.tool_call.get("args", {})
     args = dict(args) if isinstance(args, dict) else {}
+    cms_was_stated, explicit_cms_level = explicit_cms_intent(messages)
+    cms_is_explicitly_unknown = (
+        cms_was_stated and explicit_cms_level is None
+    ) or (
+        "official_cms_level" in explicit_eligibility
+        and explicit_eligibility["official_cms_level"] is None
+    )
 
     if name == "eligibility_check":
         validated_args = _merge_eligibility_args(messages, args)
@@ -424,6 +502,12 @@ def _guard_tool_call(request: ToolCallRequest) -> ToolCallRequest | ToolMessage:
         return request.override(tool_call=modified)
 
     if name == "copay_estimate":
+        if cms_is_explicitly_unknown:
+            return _blocked_message(
+                request,
+                "使用者已明確表示尚未取得正式 CMS；不得猜測個人等級或呼叫"
+                " copay_estimate。請改建立 CMS 未知參考報告。",
+            )
         ready, _ = _eligibility_ready(messages)
         if not ready:
             return _blocked_message(
@@ -456,7 +540,7 @@ def _guard_tool_call(request: ToolCallRequest) -> ToolCallRequest | ToolMessage:
             )
         eligibility = _latest_tool_message(messages, "eligibility_check")
         copay = _latest_tool_message(messages, "copay_estimate")
-        if payload.get("official_cms_level") is not None and (
+        if payload.get("official_cms_level") is not None and not cms_is_explicitly_unknown and (
             eligibility is None or copay is None or copay[0] < eligibility[0]
         ):
             return _blocked_message(
@@ -473,7 +557,7 @@ def _guard_tool_call(request: ToolCallRequest) -> ToolCallRequest | ToolMessage:
                 artifact.get("validated_arguments"), dict
             ):
                 args.update(artifact["validated_arguments"])
-        if copay is not None:
+        if copay is not None and not cms_is_explicitly_unknown:
             artifact = copay[1].artifact
             if isinstance(artifact, dict) and isinstance(
                 artifact.get("validated_arguments"), dict
@@ -489,6 +573,14 @@ def _guard_tool_call(request: ToolCallRequest) -> ToolCallRequest | ToolMessage:
         args["rule_version"] = explicit_eligibility.get(
             "rule_version", _desired_rule_version(messages)
         )
+        if cms_is_explicitly_unknown:
+            args["official_cms_level"] = None
+            for field in (
+                "welfare_category",
+                "has_foreign_caregiver",
+                "planned_spend",
+            ):
+                args.pop(field, None)
         return request.override(tool_call={**request.tool_call, "args": args})
 
     return request
@@ -511,6 +603,13 @@ def _guard_model_response(
         _tool_payload(latest_eligibility[1])
         if latest_eligibility is not None
         else None
+    )
+    cms_was_stated, explicit_cms_level = explicit_cms_intent(request.messages)
+    cms_is_explicitly_unknown = (
+        cms_was_stated and explicit_cms_level is None
+    ) or (
+        "official_cms_level" in explicit_eligibility
+        and explicit_eligibility["official_cms_level"] is None
     )
     changed = False
     result: list[BaseMessage] = []
@@ -564,14 +663,23 @@ def _guard_model_response(
             if name == "eligibility_check":
                 args = _merge_eligibility_args(request.messages, args)
                 args.update(explicit_eligibility)
+                if cms_is_explicitly_unknown:
+                    args["official_cms_level"] = None
             elif name == "copay_estimate":
                 ready, _ = _eligibility_ready(request.messages)
-                if not ready:
+                if cms_is_explicitly_unknown and ready:
+                    # 明確 unknown CMS 時，即使模型硬猜等級也直接改走參考報告；
+                    # build_report_draft 的 tool guard 會填入已驗證的資格 artifact。
+                    guarded_name = "build_report_draft"
+                    args = {}
+                elif not ready:
                     # 模型若在新一輪補資料後直接跳到試算，先改成資格重檢；
                     # 不使用或計算任何金額。
                     guarded_name = "eligibility_check"
                     args = _merge_eligibility_args(request.messages, {})
                     args.update(explicit_eligibility)
+                    if cms_is_explicitly_unknown:
+                        args["official_cms_level"] = None
                 else:
                     args.update(explicit_copay)
                     if explicit_eligibility.get("official_cms_level") is not None:
@@ -764,11 +872,8 @@ def _latest_human_text(messages: list[BaseMessage]) -> str:
 
 
 def _has_explicit_cms(messages: list[BaseMessage]) -> bool:
-    return any(
-        isinstance(message, HumanMessage)
-        and _EXPLICIT_CMS_PATTERN.search(_message_text(message))
-        for message in messages
-    )
+    was_stated, level = explicit_cms_intent(messages)
+    return was_stated and level is not None
 
 
 def _intake_prompt(messages: list[BaseMessage]) -> str | None:
@@ -789,6 +894,12 @@ def _intake_prompt(messages: list[BaseMessage]) -> str | None:
         + json.dumps(visible_facts, ensure_ascii=False, sort_keys=True),
         f"本次必須使用的規則版本：{_desired_rule_version(messages)}。",
     ]
+    cms_was_stated, cms_level = explicit_cms_intent(messages)
+    if cms_was_stated and cms_level is None:
+        lines.append(
+            "使用者已明確表示尚未取得正式 CMS；official_cms_level 必須維持 null，"
+            "不得呼叫 copay_estimate、不得從 CMS 2 至 8 級參考範圍猜個人等級。"
+        )
     if payload and payload.get("status") == "INSUFFICIENT_INFORMATION":
         missing = [
             _FIELD_LABELS.get(str(field), str(field))
@@ -931,5 +1042,6 @@ class CaseIntakeMiddleware(AgentMiddleware):
 __all__ = [
     "CaseIntakeMiddleware",
     "CaseIntakeState",
+    "explicit_cms_intent",
     "merge_explicit_case_facts",
 ]

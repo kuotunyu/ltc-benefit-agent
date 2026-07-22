@@ -19,7 +19,10 @@ from pydantic import Field
 
 from ltc_benefit_agent.agent.config import AgentProvider, AgentSettings
 from ltc_benefit_agent.agent.factory import build_agent_runtime, build_chat_model
-from ltc_benefit_agent.agent.intake import merge_explicit_case_facts
+from ltc_benefit_agent.agent.intake import (
+    explicit_cms_intent,
+    merge_explicit_case_facts,
+)
 from ltc_benefit_agent.agent.privacy import SafeAuditLogger, redact_text
 from ltc_benefit_agent.agent.reports import (
     ReportPublicationRejected,
@@ -58,6 +61,14 @@ COMPLETE_REPORT_USER_TEXT = (
     "家人 70 歲，不是原住民，沒有身障證明、沒有失智診斷，也不是 PAC；"
     "生活需要協助已 12 個月，住家裡。正式 CMS 2，第三類，沒有外籍看護，"
     "預計每月服務費 20000 元。"
+)
+
+UNKNOWN_CMS_PUBLIC_USER_TEXT = (
+    "家人 70 歲，住在家裡。洗澡和穿衣需要他人協助，已持續 8 個月；"
+    "吃飯、起身走動和如廁不需要協助。不是原住民，沒有身心障礙證明，"
+    "沒有確診失智，也不是 PAC 個案。目前尚未接受正式 CMS 評估，"
+    "不知道 CMS 等級。請不要推估 CMS，只提供資格初篩、CMS 2 至 8 級"
+    "參考表與申請方式。"
 )
 
 
@@ -483,6 +494,74 @@ class UnknownCmsStoppingModel(BaseChatModel):
         return ChatResult(generations=[ChatGeneration(message=message)])
 
 
+class UnknownCmsGuessingModel(BaseChatModel):
+    """刻意把參考範圍猜成 CMS 2，驗證 middleware 會在工具前阻擋。"""
+
+    @property
+    def _llm_type(self) -> str:
+        return "unknown-cms-guessing-test-model"
+
+    def bind_tools(
+        self, tools: Sequence[BaseTool | dict[str, Any]], **kwargs: Any
+    ) -> "UnknownCmsGuessingModel":
+        del tools, kwargs
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del stop, run_manager, kwargs
+        last = messages[-1]
+        if isinstance(last, HumanMessage):
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "eligibility_check",
+                        "args": {
+                            "age": 70,
+                            "indigenous": False,
+                            "has_disability_certificate": False,
+                            "has_dementia_diagnosis": False,
+                            "is_pac_case": False,
+                            "has_functional_impairment": True,
+                            "impairment_duration_months": 8,
+                            "residence_status": "COMMUNITY",
+                            "official_cms_level": 2,
+                            "rule_version": "CURRENT_2026_07",
+                        },
+                        "id": "unknown-guess-eligibility",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage) and last.name == "eligibility_check":
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "copay_estimate",
+                        "args": {
+                            "cms_level": 2,
+                            "welfare_category": "THIRD",
+                            "has_foreign_caregiver": False,
+                            "planned_spend": 10_020,
+                            "rule_version": "CURRENT_2026_07",
+                        },
+                        "id": "unknown-guess-copay",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage) and last.name == "build_report_draft":
+            message = AIMessage(content="草稿已建立。")
+        else:  # pragma: no cover - exposes unexpected middleware transitions
+            raise AssertionError(f"unexpected last message: {last!r}")
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 class CrossTurnSkippingModel(BaseChatModel):
     """模擬小模型忘記舊欄位，並在第二輪過早跳到金額工具。"""
 
@@ -771,6 +850,74 @@ def test_workflow_guard_builds_reference_report_without_guessing_unknown_cms() -
     assert "CMS 未知" in pending.latest_text
     assert "1966" in pending.latest_text
     assert pending.state["workflow_guard_nudge_count"] == 2
+
+
+def test_public_unknown_cms_wording_cannot_be_guessed_as_level_two() -> None:
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=UnknownCmsGuessingModel())
+    )
+
+    pending = service.send_message(
+        "thread-public-unknown-cms-regression",
+        UNKNOWN_CMS_PUBLIC_USER_TEXT,
+    )
+
+    assert pending.awaiting_approval
+    preview = pending.pending_report_preview
+    assert preview is not None
+    assert "CMS 未知：僅提供額度參考" in preview
+    assert "不做個人化試算，也不從描述猜級" in preview
+    assert "| 2 | NT$ 10,020 | NT$ 3,006 |" in preview
+    assert "| 8 | NT$ 36,180 | NT$ 10,854 |" in preview
+    assert "政府給付" not in preview
+    assert "合計自付" not in preview
+    successful_tools = [
+        message
+        for message in pending.state["messages"]
+        if isinstance(message, ToolMessage)
+        and getattr(message, "status", "success") != "error"
+    ]
+    assert [message.name for message in successful_tools] == [
+        "eligibility_check",
+        "build_report_draft",
+    ]
+    eligibility_args = successful_tools[0].artifact["validated_arguments"]
+    assert eligibility_args["official_cms_level"] is None
+    assert eligibility_args["has_functional_impairment"] is True
+    assert pending.state["case_explicit_eligibility_facts"][
+        "official_cms_level"
+    ] is None
+    assert pending.state["case_explicit_copay_facts"]["cms_level"] is None
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("正式 CMS 4。", (True, 4)),
+        ("CMS 2 至 8 級參考表", (False, None)),
+        ("CMS 2–8 級參考表", (False, None)),
+        ("尚未接受正式 CMS 評估，不知道 CMS 等級。", (True, None)),
+    ],
+)
+def test_explicit_cms_intent_distinguishes_level_unknown_and_reference_range(
+    text: str, expected: tuple[bool, int | None]
+) -> None:
+    assert explicit_cms_intent([HumanMessage(content=text)]) == expected
+
+
+def test_latest_explicit_cms_intent_overrides_earlier_turn() -> None:
+    assert explicit_cms_intent(
+        [
+            HumanMessage(content="目前不知道 CMS 等級。"),
+            HumanMessage(content="後來查到正式 CMS 4。"),
+        ]
+    ) == (True, 4)
+    assert explicit_cms_intent(
+        [
+            HumanMessage(content="先前以為正式 CMS 4。"),
+            HumanMessage(content="前述有誤，CMS 尚未評估。"),
+        ]
+    ) == (True, None)
 
 
 def test_intake_guard_returns_deterministic_missing_information_followup() -> None:
