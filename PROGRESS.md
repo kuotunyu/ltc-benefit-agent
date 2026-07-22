@@ -2,7 +2,7 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 2／Phase 4 與三模式固定 20 題工程均完成；Phase 3 已通過工程 review，並補上一般讀者可理解的評估口徑，停在作者驗收閘門。作者已建立空的公開遠端 repo並初始化本機 `main`；尚未 commit／Push，公開前仍有五項法規人工校對待作者完成。
+- **現在做到哪**：Phase 2／Phase 4 與三模式固定 20 題工程均完成；Phase 3 已通過工程 review，並補上一般讀者可理解的評估口徑，停在作者驗收閘門。作者已建立空的公開遠端 repo、初始化本機 `main` 並完成第一筆骨架 commit；尚未 Push，公開前仍有五項法規人工校對待作者完成。
 - **實跑總證據**：`uv lock --check`、locked sync、compileall 通過；pytest **476 passed in 2.91s**。六支 project skills、公開文案與秘密掃描均通過。
 - **Context7**：全域 MCP 已啟用 OAuth；已用 `/websites/langchain_oss` 查證 `create_agent`／HITL、PII、`init_chat_model`。新增 `verify-external-api` project skill，驗證通過。
 - **本機 20 題**：12B adapter 為追問 12、選工具 5、參數 17、金額 19、PII 0、HITL 4、端到端 3；F1 為 18、0、12、14、0、0、0。
@@ -202,3 +202,39 @@
   - 作者提供實跑輸出：以空白歷史初始化本機 repository、主分支設為 `main`，local `user.name` 為 `kuotunyu`，local `user.email` 為該帳號的 GitHub noreply email。
   - `git check-ignore -v .env` 命中 `.gitignore:2:.env`，確認既有秘密檔不會被一般 `git add` 納入。因為初始化前沒有 `.git`，目前不存在 `tun0000`、Claude 或其他舊作者歷史。
   - Git 邊界：以上 Git 指令均由作者自行執行；Agent 未執行 Git。尚未 add／commit／Push，下一步先按功能群組建立小型 Conventional Commits。
+
+- **2026-07-22（作者建立第一筆 commit）**：
+  - 作者提供實跑證據：root commit `31d00a2`，訊息 `chore: initialize project structure`，共 24 個專案骨架、規範與 project skill 檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu`，並使用該帳號 GitHub noreply email；commit message 沒有共同作者 trailer。
+  - Agent 未執行 Git；尚未 Push。下一筆預定為確定性資格／金額／FAQ 工具及其測試。
+
+- **2026-07-22（作者建立工具層 commit）**：
+  - 作者先實跑工具層 pytest，結果 **442 passed in 0.34s**；接著建立 commit `91fc3bd`，訊息 `feat(tools): 加入確定性資格、補助試算與 FAQ 檢索`，共 10 個規則、工具、校對表與測試檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu` 的 GitHub noreply email，沒有共同作者 trailer；尚未 Push。
+  - 作者新增慣例：後續 Conventional Commit 主旨與內文以正體中文（zh-TW）為主，Agent／PII／HITL／FAQ 等專有名詞保留原文；已同步至 `AGENTS.md`。
+  - Agent 未執行 Git。下一筆預定為多輪 Agent、PII 遮蔽、HITL 與 CLI。
+
+- **2026-07-22（作者建立 Agent commit）**：
+  - 作者實跑 `tests/test_agent_phase2.py`，結果 **14 passed in 0.59s**；接著建立 commit `98260fd`，訊息 `feat(agent): 加入多輪 Agent、PII 遮蔽與 HITL`，共 10 個 Agent／CLI／安全與測試檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu` 的 GitHub noreply email，沒有共同作者 trailer；尚未 Push。
+  - Agent 未執行 Git。為維持小型 commit，後續將診斷 evaluator 與 F1／Ollama 準備工具拆成兩筆。
+
+- **2026-07-22（作者建立診斷 evaluator commit）**：
+  - 作者實跑 `tests/test_evaluation.py`，結果 **15 passed in 0.34s**；接著建立 commit `4edfb27`，訊息 `feat(eval): 加入 20 題確定性診斷與雲端執行保護`，共 11 個 evaluator、固定情境、成本／合併腳本與測試檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu` 的 GitHub noreply email，沒有共同作者 trailer；尚未 Push。
+  - Agent 未執行 Git。下一筆只納入 F1 轉檔工具、Ollama 模板及地端準備說明，不混入 UI。
+
+- **2026-07-22（作者建立地端模型流程 commit）**：
+  - 作者實跑 `py_compile` 與準備腳本 `--help`，兩者皆正常且沒有下載、轉檔或匯入模型；接著建立 commit `e922e4a`，訊息 `feat(local): 加入地端模型轉檔與服務匯入流程`，共 4 個轉檔腳本、服務模板與操作說明檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu` 的 GitHub noreply email，沒有共同作者 trailer；尚未 Push。
+  - Agent 未執行 Git。下一筆預定為聊天 UI、session 隔離、人工核准入口與託管說明。
+
+- **2026-07-22（作者建立 UI commit）**：
+  - 作者實跑 `tests/test_ui.py`，結果 **5 passed in 2.05s**；`app.py` 與 UI smoke 腳本 `py_compile` 通過且未啟動 server。接著建立 commit `6e21113`，訊息 `feat(ui): 加入聊天、試算明細與人工核准介面`，共 8 個 UI、託管、smoke 與測試檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu` 的 GitHub noreply email，沒有共同作者 trailer；尚未 Push。
+  - Agent 未執行 Git。下一筆預定為 README、三份完整對話範例、正體中文 commit 規範與累積進度證據；五項規則人工簽核仍保持未完成。
+
+- **2026-07-22（公開文件 commit 前驗證）**：
+  - staged 範圍為 README、三份完整對話範例、`AGENTS.md` 與 `PROGRESS.md`；未納入 `.env`、runtime artifacts、模型或權重。
+  - 實跑 `uv lock --check` 通過，全套 pytest **476 passed in 2.69s**；疑似 token、私密絕對路徑、作者真實／noreply email、README 公開禁詞與未忽略 50 MB 大檔掃描全部為 0。
+  - Agent 未執行 Git、沒有 API 成本、尚未 Push。文件 commit 完成後仍須由作者完成五項規則人工簽核，才可通過 Public release gate。
