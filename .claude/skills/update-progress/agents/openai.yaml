@@ -1,0 +1,4 @@
+interface:
+  display_name: "更新專案進度"
+  short_description: "Record verified progress without running any Git command"
+  default_prompt: "Use $update-progress to record verified progress for the current phase."

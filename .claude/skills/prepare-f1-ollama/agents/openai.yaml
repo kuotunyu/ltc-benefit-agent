@@ -1,0 +1,4 @@
+interface:
+  display_name: "準備 F1 Ollama 模型"
+  short_description: "安全執行 F1 權重檢查、GGUF 轉檔、量化與匯入"
+  default_prompt: "使用 $prepare-f1-ollama 先檢查授權與資源，再安全重建 F1 地端模型。"

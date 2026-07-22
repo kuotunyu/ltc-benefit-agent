@@ -1,0 +1,4 @@
+interface:
+  display_name: "外部 API 查證"
+  short_description: "以 Context7 查證外部套件 API 並留下版本與測試證據"
+  default_prompt: "Use $verify-external-api to verify the current external API before changing this project."
