@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub 與公開 Space 已同步至 `879f3d5`。Space 第二次 Build 證明 requirements 安裝早於 repository 複製，故 `-e .` 找不到 `pyproject.toml`；runtime `src/` 自舉修正已在本機驗證，待作者 Push 重建。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub 與公開 Space 已同步至 `211de11`。Space 第三次 Build 進入 resolver 後發現 Gradio MCP extra 與 Pydantic 2.13.4 衝突；相容 lock 與完整 Space 命令驗證已完成，待作者 Push 重建。
 - **本次完成**：12B 漏掉首次資格工具時新增最多一次的隔離結構化重試；只暴露 `eligibility_check` 與遮蔽後明確欄位，僅正規化模型明確輸出的合法 JSON tool call，不猜意圖、不補參數、不改資格／金額公式。
-- **實跑總證據**：runtime 自舉修正後 `uv lock --check`、UI **11 passed**、完整 pytest **498 passed in 3.10s**、`uv build`、root app `py_compile` 與 86 packages requirements dry-run 成功；本機固定 20 題已完成兩模式 v3 最終重測。
+- **實跑總證據**：Space extras 相容 lock 後 `uv pip check` 為 91 packages compatible、核心 **46 passed**、完整 pytest **498 passed in 3.16s**、`uv build` 成功；Python 3.11 原生 pip 以 builder 完整命令 dry-run 成功，Gemini connector 無網路建構成功。
 - **Context7**：以 `/websites/langchain_oss_python` 查證 LangChain 1.x `wrap_model_call` 有限重試、`ModelRequest.override`、動態工具子集與 `tool_choice`；再以鎖定的 LangChain 1.3.14／Ollama connector 實作複核。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者自行 commit Space runtime 自舉修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
+  1. 作者自行 commit Space extras 相容 lock，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
   2. 確認 Space Build 轉為 Running，再完成 unknown CMS、已知 CMS、HITL 與手機寬度公開 smoke。
   3. 若要取得新 workflow／新雲端模型的固定 20 題成績，另行核准 US$1.776 上限；公開版驗收後再決定 `phase-4` tag／Release。
 - **成本**：Gemini 3.5 smoke 使用 61 input、56 output tokens，依標準價推算約 US$0.0001583（實際帳單依方案／免費額度）；低於 US$0.00188 核准上限。既有雲端診斷累計保守授權上限 US$0.99；新版 20 題按 8 calls／題重估上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：`origin`／`space` 目前都是 `879f3d5`；runtime 自舉修正、測試、文件與進度待作者自行 commit，之後依序 Push 到兩個 remote。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：Space builder 先在 `/tmp` 安裝 requirements、再把 repo 複製到 `/app`，因此入口檔不可 include 相鄰檔案或使用 `-e .`；20／20 是小型固定診斷集，不代表統計泛化；雲端新版尚未重跑固定 20 題；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：`origin`／`space` 目前都是 `211de11`；`pyproject.toml`、`uv.lock`、重匯出的 requirements、測試與文件待作者自行 commit，之後依序 Push 到兩個 remote。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：Space builder 自動加入 Gradio MCP extra，必須同時驗證 extras 而非只測專案 requirements；相容 Pydantic 使 `google-genai` 降至 2.8.0，部署後真實 API smoke 仍須另行成本核准；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -472,3 +472,10 @@
   - Build log 證明實際順序為：先把 `requirements.txt` mount 到 `/tmp` 並安裝，之後才 `COPY --link ./ /app`。因此 requirements 改為只包含 `uv.lock` 匯出的外部套件；根目錄 `app.py` 在 runtime 以 `Path(__file__).resolve().parent / "src"` 加入 module path，再載入正式 UI。新增 PLAN D35，hosting／release checklist 與架構測試同步鎖住此順序。
   - 實跑證據：`uv lock --check` 成功、UI **11 passed in 2.31s**、完整 pytest **498 passed in 3.10s**、sdist／wheel build 與 `app.py` 的 `py_compile` 成功；`uv pip install --dry-run -r requirements.txt` 檢查 86 packages 並顯示 `Would make no changes`。
   - 成本與 Git：本輪未呼叫模型 API，成本 US$0；未讀取或修改 `.env`，Agent 未執行任何 Git 指令。待作者自行提交並依序 Push `origin`／`space`。建議 commit：`fix(space): 改由 runtime 載入 src package`。
+
+- **2026-07-23（Space 第三次 Build 診斷與 extras 相容 lock）**：
+  - 作者自行將 runtime 自舉 commit `211de11` Push 至 GitHub 與 Space。第三次公開 Build 已越過 include／editable install 問題，但 resolver 明確拒絕專案 lock 的 Pydantic 2.13.4；Space 自動加入的 `gradio[oauth,mcp]==6.20.0` 要求 Pydantic 2.11.10–2.12.x。
+  - 依 Context7 `/gradio-app/gradio` 確認 MCP 由 `gradio[mcp]` extra 安裝，再以官方 PyPI 6.20.0 JSON metadata 複核版本範圍。因公開 builder 實際訊息使用 `<2.12.5`，在 `pyproject.toml` 加入 `pydantic>=2.11.10,<2.12.5`，重新解析 lock 為 Pydantic 2.12.4／core 2.41.5；連帶把要求 Pydantic >=2.12.5 的 `google-genai` 2.13.0 降為相容的 2.8.0。
+  - 以 builder 顯示的完整參數執行 Python 3.11 原生 pip dry-run：`requirements.txt`、`gradio[oauth,mcp]==6.20.0`、`uvicorn>=0.14.0`、`websockets>=10.4`、`spaces` 全部成功解析；uv dry-run 亦成功。使用 dummy key 僅建構 LangChain connector，輸出 `ChatGoogleGenerativeAI gemini-3.5-flash-lite medium`，沒有送出網路模型請求。
+  - 實跑證據：`uv sync --locked --all-groups` 成功、`uv pip check` 為 91 packages compatible、Agent／UI／架構 **46 passed in 2.79s**、完整 pytest **498 passed in 3.16s**、sdist／wheel build 成功。真實 Gemini smoke 尚未執行，需待 Space Running 後另列上限取得核准。
+  - 成本與 Git：本輪模型 API 成本 US$0；未讀取或修改 `.env`，Agent 未執行任何 Git 指令。待作者自行 commit 並依序 Push `origin`／`space`。建議 commit：`fix(space): 對齊 Gradio MCP 的 Pydantic 相依`。

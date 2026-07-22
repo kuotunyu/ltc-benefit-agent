@@ -210,6 +210,7 @@ def test_space_metadata_and_install_entrypoint_are_complete() -> None:
         encoding="utf-8",
     )
     assert active_requirements == exported.splitlines()
+    assert "pydantic==2.12.4" in active_requirements
 
     lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
     locked_versions: dict[str, set[str]] = {}
