@@ -38,6 +38,13 @@ class _WorkflowStage(StrEnum):
 
 _MAX_NUDGES_PER_INVOCATION = 3
 
+# UI 只用此指令表示「現制主報告另附歷史快照比較」。字串刻意不含
+# LEGACY_2022／2022／舊制，避免 intake 將比較意圖誤判為切換主規則版本。
+CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE = (
+    "[INTERFACE_COMPARE_HISTORICAL_SNAPSHOT=true; "
+    "PRIMARY_RULE=CURRENT_2026_07]"
+)
+
 _EXPLICIT_CMS_PATTERN = re.compile(
     r"(?<![A-Za-z])CMS\s*(?:等級)?\s*[:：]?\s*[2-8](?!\d)", re.IGNORECASE
 )
@@ -131,8 +138,13 @@ def _explicit_compare_legacy(messages: list[BaseMessage]) -> bool:
         if not isinstance(message, HumanMessage):
             continue
         text = _message_text(message)
-        return "LEGACY_2022" in text or (
-            "2022" in text and any(keyword in text for keyword in ("比較", "並列"))
+        return (
+            CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE in text
+            or "LEGACY_2022" in text
+            or (
+                "2022" in text
+                and any(keyword in text for keyword in ("比較", "並列"))
+            )
         )
     return False
 

@@ -12,6 +12,9 @@ from ltc_benefit_agent.agent.config import AgentProvider, AgentSettings
 from ltc_benefit_agent.agent.factory import build_agent_runtime
 from ltc_benefit_agent.agent.privacy import redact_text
 from ltc_benefit_agent.agent.service import BenefitAgentService
+from ltc_benefit_agent.agent.workflow import (
+    CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE,
+)
 
 
 ChatHistory = list[dict[str, object]]
@@ -211,7 +214,7 @@ class GradioController:
         effective_text = cleaned
         if compare_legacy:
             effective_text += (
-                "\n\n[介面明確選項：使用者要求現制結果並列 LEGACY_2022 舊制比較。]"
+                f"\n\n{CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE}"
             )
         turn = service.send_message(session_id, effective_text)
         if turn.awaiting_approval:

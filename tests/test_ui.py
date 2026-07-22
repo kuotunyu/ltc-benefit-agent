@@ -118,7 +118,10 @@ def test_controller_keeps_sessions_isolated_and_masks_chat_echo() -> None:
     assert "王小明" not in first.history[0]["content"]
     assert "0912-345-678" not in first.history[0]["content"]
     assert "LEGACY_2022" not in services[0].messages[0]
-    assert "LEGACY_2022" in services[1].messages[0]
+    assert "INTERFACE_COMPARE_HISTORICAL_SNAPSHOT=true" in services[1].messages[0]
+    assert "PRIMARY_RULE=CURRENT_2026_07" in services[1].messages[0]
+    assert "LEGACY_2022" not in services[1].messages[0]
+    assert "2022" not in services[1].messages[0]
     assert first.approval_visible and second.approval_visible
 
 
