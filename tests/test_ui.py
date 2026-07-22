@@ -192,7 +192,7 @@ def test_space_metadata_and_install_entrypoint_are_complete() -> None:
     active_requirements = [
         line for line in requirements_lines if line and not line.startswith("#")
     ]
-    assert active_requirements == ["-r requirements.lock.txt", "-e ."]
+    assert active_requirements[-1] == "-e ."
 
     exported = subprocess.check_output(
         [
@@ -211,7 +211,7 @@ def test_space_metadata_and_install_entrypoint_are_complete() -> None:
         text=True,
         encoding="utf-8",
     )
-    assert (ROOT / "requirements.lock.txt").read_text(encoding="utf-8") == exported
+    assert active_requirements[:-1] == exported.splitlines()
 
     lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
     locked_versions: dict[str, set[str]] = {}
