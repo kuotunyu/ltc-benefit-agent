@@ -327,8 +327,33 @@ def test_unknown_cms_only_renders_reference_table() -> None:
     assert "CMS 未知：僅提供額度參考" in report
     assert "不做個人化試算" in report
     assert "| 8 | NT$ 36,180 | NT$ 10,854 |" in report
+    assert "居家照顧服務以外之照顧組合" in report
+    assert "不判定個別服務碼是否適用" in report
     assert "政府給付" not in report
     assert "合計自付" not in report
+
+
+def test_foreign_caregiver_report_states_service_combination_restriction() -> None:
+    report = render_report(
+        eligibility_input=EligibilityInput(
+            age=70,
+            indigenous=False,
+            has_disability_certificate=False,
+            has_dementia_diagnosis=False,
+            is_pac_case=False,
+            has_functional_impairment=True,
+            impairment_duration_months=6,
+            residence_status=ResidenceStatus.COMMUNITY,
+            official_cms_level=2,
+            rule_version=RuleVersion.CURRENT_2026_07,
+        ),
+        welfare_category=WelfareCategory.THIRD,
+        has_foreign_caregiver=True,
+        planned_spend=3_006,
+    )
+    assert "外籍家庭看護額度提醒" in report
+    assert "居家照顧服務以外之照顧組合" in report
+    assert "不判定個別服務碼是否適用" in report
 
 
 def test_current_report_can_explicitly_compare_legacy_snapshot() -> None:
@@ -351,6 +376,11 @@ def test_current_report_can_explicitly_compare_legacy_snapshot() -> None:
         compare_legacy=True,
     )
     assert "`CURRENT_2026_07`" in report
+    assert "完整快照基準：2026-07-01" in report
+    assert "2025-09-01" in report
+    assert "2026-01-01" in report
+    assert "不代表所有規則都在該日才生效" in report
+    assert "生效基準：" not in report
     assert "## 舊制比較" in report
     assert "`LEGACY_2022` 初篩：`PRELIMINARY_CRITERIA_NOT_MET`" in report
 

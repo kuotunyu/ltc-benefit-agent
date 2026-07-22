@@ -81,9 +81,11 @@ RULE_SNAPSHOTS: Final[Mapping[RuleVersion, RuleSnapshot]] = MappingProxyType(
             quota_url=CURRENT_QUOTA_URL,
             copay_url=CURRENT_COPAY_URL,
             notes=(
+                "2025-06-19 修正內容原則自 2025-09-01 施行。",
                 "失智症取消五十歲年齡門檻及 PAC 資格自 2026-01-01 施行。",
                 "PAC 是短期照顧需求的明文擴充，不適用一般六個月門檻。",
-                "本快照另包含 2026-07-01 完整生效項目。",
+                "最後一批附表修正自 2026-07-01 施行；版本名稱代表完整快照，"
+                "不代表所有規則都在該日才生效。",
             ),
         ),
     }
@@ -110,8 +112,13 @@ COPAY_PERCENTAGES: Final[Mapping[str, int]] = MappingProxyType(
 )
 
 # 來源：申請及給付辦法第 10 條。聘僱外國家庭幫傭、家庭看護或中階
-# 技術家庭看護等情形，照顧及專業服務額度為附表二額度的 30%。
+# 技術家庭看護等情形，照顧及專業服務額度為附表二額度的 30%；該額度
+# 僅能用於附表四居家照顧服務以外之照顧組合。
 FOREIGN_CAREGIVER_QUOTA_PERCENT: Final = 30
+FOREIGN_CAREGIVER_USAGE_NOTE: Final = (
+    "外籍家庭看護等情形的 30% 額度依法僅能用於附表四居家照顧服務以外"
+    "之照顧組合；本工具只試算額度與部分負擔，不判定個別服務碼是否適用。"
+)
 
 # 來源：長期照顧服務法第 3 條第 1 款；長照指失能已達或預期達六個月以上。
 MIN_LONG_TERM_MONTHS: Final = 6

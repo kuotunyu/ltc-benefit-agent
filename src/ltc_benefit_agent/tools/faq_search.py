@@ -82,7 +82,8 @@ _FAQ_CORPUS = (
             article="第 10 條",
             excerpt=(
                 "聘僱外國家庭幫傭、家庭看護或中階技術家庭看護等情形，"
-                "照顧及專業服務額度為附表二額度的百分之三十，並受服務組合限制。"
+                "照顧及專業服務額度為附表二額度的百分之三十；該額度僅能用於"
+                "附表四居家照顧服務以外之照顧組合。"
             ),
             url=CURRENT_REGULATION_URL,
             data_version=_CURRENT_DATA_VERSION,

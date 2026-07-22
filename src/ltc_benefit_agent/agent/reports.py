@@ -19,7 +19,11 @@ from ltc_benefit_agent.tools.eligibility import (
     assess_eligibility,
 )
 from ltc_benefit_agent.tools.faq_search import FaqSearchResult
-from ltc_benefit_agent.tools.rules import APPLICATION_GUIDE_URL, RuleVersion
+from ltc_benefit_agent.tools.rules import (
+    APPLICATION_GUIDE_URL,
+    FOREIGN_CAREGIVER_USAGE_NOTE,
+    RuleVersion,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,7 +81,7 @@ def _copay_section(result: CopayResult) -> list[str]:
         if result.planned_spend is not None
         else "額度全數使用示例（非實際帳單）"
     )
-    return [
+    lines = [
         "## 估算額度表",
         "",
         f"> 計算基礎：{basis_note}",
@@ -95,6 +99,9 @@ def _copay_section(result: CopayResult) -> list[str]:
         f"| 超額自費 | {_money(result.overage)} |",
         f"| 合計自付 | {_money(result.total_out_of_pocket)} |",
     ]
+    if result.has_foreign_caregiver:
+        lines.extend(["", f"> 外籍家庭看護額度提醒：{FOREIGN_CAREGIVER_USAGE_NOTE}"])
+    return lines
 
 
 def _reference_section(version: RuleVersion) -> list[str]:
@@ -111,6 +118,7 @@ def _reference_section(version: RuleVersion) -> list[str]:
             f"| {row.cms_level} | {_money(row.monthly_quota)} | "
             f"{_money(row.foreign_caregiver_adjusted_quota)} |"
         )
+    lines.extend(["", f"> 30% 額度提醒：{FOREIGN_CAREGIVER_USAGE_NOTE}"])
     return lines
 
 
@@ -133,8 +141,9 @@ def render_report(
         "## 規則版本",
         "",
         f"- `{rule.version.value}`",
-        f"- 生效基準：{rule.effective_date.isoformat()}",
+        f"- 完整快照基準：{rule.effective_date.isoformat()}",
         f"- 查證日期：{rule.verified_on.isoformat()}",
+        *(f"- 規則說明：{note}" for note in rule.notes),
     ]
 
     if eligibility_input.official_cms_level is None:
