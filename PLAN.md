@@ -69,6 +69,7 @@
 | D32 | 2026-07-22 | raw evaluation traces 維持 ignored；公開摘要只保留逐題確定性評分、aggregate、scenario／artifact SHA-256，不含對話、工具參數／結果、attempts 或 notes | GitHub 上的評估數字需要可查核，但 raw trace 可能包含測試 PII 與模型文字；exporter 會重算 metrics 並在 coverage、順序、trace 數或 aggregate 不一致時拒絕輸出 |
 | D33 | 2026-07-22 | 公開 CI 使用 Windows runner、Python 3.11、與本機相同的 uv 0.11.18；依官方建議將 setup action 固定到 v8.1.0 commit SHA | 專案的首要執行環境是 Windows，CI 應驗證 lock、完整 pytest 與 distribution build；固定 action／uv 版本降低供應鏈漂移，workflow 不使用 Secrets 或模型 API |
 | D39 | 2026-07-23 | Gradio UI 以 `gr.State(uuid4)` 保存每個瀏覽器 session 的穩定 thread ID；approve 完成後顯示不可重按的「已核准並發布」，服務層對相同 thread 的重複 approve 回傳同一份已發布原文 | 公開 Space 的 `request.session_hash` 在草稿與決策事件間未可靠對應，造成待核准狀態遺失；Gradio 6 SSR 又會保留作為事件來源的 Button，因此以 session state、冪等服務與明確 disabled 完成狀態共同避免 `common.error` 與誤導重按 |
+| D40 | 2026-07-23 | intake 將「正式 CMS 個人等級」、「明確尚未評估／未知」與「CMS 2 至 8 級參考範圍」分開解析；明確 unknown 時強制 `official_cms_level=null`，並在 model response 與 tool call 兩層禁止 `copay_estimate` | 公開 Space 驗收證明舊 regex 會把「CMS 2 至 8 級參考表」截成個人 CMS 2，違反 unknown CMS 不猜級原則；範圍排除、最新意圖覆寫與雙層 guard 可避免模型或 adapter 再把參考數字帶入個人試算 |
 
 ## 公開介面與計算契約
 
