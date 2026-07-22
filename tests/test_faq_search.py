@@ -54,6 +54,12 @@ def test_standalone_faq_hits_expected_rule(
     assert results[0].url.startswith("https://")
 
 
+def test_foreign_caregiver_faq_states_service_combination_restriction() -> None:
+    result = search_faq_standalone("外籍看護可以申請嗎")[0]
+    assert result.article == "第 10 條"
+    assert "居家照顧服務以外之照顧組合" in result.excerpt
+
+
 def test_standalone_faq_returns_empty_for_no_match() -> None:
     assert search_faq_standalone("火星天氣與潮汐") == []
 

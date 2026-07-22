@@ -2,17 +2,16 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 2／Phase 4 與三模式固定 20 題工程均完成；Phase 3 已通過工程 review，並補上一般讀者可理解的評估口徑，停在作者驗收閘門。作者已建立空的公開遠端 repo、初始化本機 `main` 並完成第一筆骨架 commit；尚未 Push，公開前仍有五項法規人工校對待作者完成。
-- **實跑總證據**：`uv lock --check`、locked sync、compileall 通過；pytest **476 passed in 2.91s**。六支 project skills、公開文案與秘密掃描均通過。
+- **現在做到哪**：Phase 1–4 工程與三模式固定 20 題均完成；作者已完成七筆本機 commits、尚未 Push。公開前人工規則校對 5／5，最後 release review 已通過，待作者建立 audit commit 並自行 Push。
+- **實跑總證據**：人工簽核 5／5；`uv lock --check`、locked sync、compileall 通過；最新 pytest **479 passed in 3.12s**。六支 project skills、離線 CLI、公開文案、秘密與大檔掃描均通過。
 - **Context7**：全域 MCP 已啟用 OAuth；已用 `/websites/langchain_oss` 查證 `create_agent`／HITL、PII、`init_chat_model`。新增 `verify-external-api` project skill，驗證通過。
 - **本機 20 題**：12B adapter 為追問 12、選工具 5、參數 17、金額 19、PII 0、HITL 4、端到端 3；F1 為 18、0、12、14、0、0、0。
 - **雲端 20 題**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法報告發布被 registry 擋下並誠實計為失敗。
 - **金額口徑**：20 題中 13 題應試算、7 題不得試算；真正金額一致為雲端 12／13、F1 7／13、12B adapter 12／13，README 已避免把 19／20 誤讀為算了 20 題。
 - **下一步**：
-  1. 作者依建議檔案群組建立小型 Conventional Commits；先不 Push。
-  2. 作者檢視三模式結果並確認 Phase 3；確認後才建議建立 `phase-3` tag。
-  3. 作者依 `docs/research/rules-audit.md` 人工複核五項規則；Agent 不得代勾。
-  4. 人工規則簽核後再跑一次整體 release review，接著由作者自行 Push／建立 tag。
+  1. 作者為最後的規則稽核修正建立小型 Conventional Commit。
+  2. 作者自行設定 GitHub remote 並 Push `main`；Push 後檢查 Contributors 只顯示 `kuotunyu`。
+  3. 作者需要時自行建立 `phase-4` tag；Agent 不執行 Git。
 - **成本**：兩次 S14 保守上限合計 US$0.09；本次 20 題批次核准上限 US$0.90、實際帳單未知且尚未跑完，累計保守授權上限 US$0.99。
 - **待使用者 Git 操作**：Agent 未執行任何 Git 指令；小功能 commit 與 Phase tag 仍由作者自行處理。
 - **⚠️ 已知坑**：雲端專案有 15 requests/minute 限制，診斷固定共用 12/min limiter；3B 不可靠地進入建稿／HITL。合併 artifact 保留四段 partial run 的中止原因；`.env` 真值從未印出、覆寫或提交。
@@ -238,3 +237,36 @@
   - staged 範圍為 README、三份完整對話範例、`AGENTS.md` 與 `PROGRESS.md`；未納入 `.env`、runtime artifacts、模型或權重。
   - 實跑 `uv lock --check` 通過，全套 pytest **476 passed in 2.69s**；疑似 token、私密絕對路徑、作者真實／noreply email、README 公開禁詞與未忽略 50 MB 大檔掃描全部為 0。
   - Agent 未執行 Git、沒有 API 成本、尚未 Push。文件 commit 完成後仍須由作者完成五項規則人工簽核，才可通過 Public release gate。
+
+- **2026-07-22（作者建立公開文件 commit）**：
+  - 作者建立 commit `ba01a46`，訊息 `docs: 補充評估解讀、對話範例與進度紀錄`，共 6 個 README、對話範例與專案紀錄檔案。
+  - `git show` 證實 Author 與 Committer 都是 `kuotunyu` 的 GitHub noreply email，沒有共同作者 trailer；截至此筆共七個小型 Conventional Commits，仍未 Push。
+  - Agent 未執行 Git。下一步由作者依 `docs/research/rules-audit.md` 完成五項人工簽核，之後建立最後的 audit commit，再進行 Public Push。
+
+- **2026-07-22（人工規則校對第 1–3 項）**：
+  - 作者親自開啟官方附表二，逐格確認 CMS 2–8 照顧及專業服務月額 10,020／15,460／18,580／24,100／28,070／32,090／36,180，並在校對表完成第 1 項簽核。
+  - 作者親自開啟官方附表五，確認照顧及專業服務第一／第二／第三類部分負擔為 0%／5%／16%，且小數點後無條件捨去，並完成第 2 項簽核。
+  - 第 3 項檢查發現 README 原文只寫 30% 額度，漏載第 10 條第二項「僅能用於附表四居家照顧服務以外之照顧組合」限制，因此未代勾、先阻擋 release。
+  - 已補強 README、standalone FAQ、CMS 未知參考表與已知 CMS 最終報告；固定說明本工具不判定個別服務碼是否適用。新增兩項回歸測試，針對性 **35 passed in 0.81s**、`uv lock --check` 通過、全套 **478 passed in 3.13s**。
+  - Agent 未執行 Git，API 成本 US$0；第 3 項仍待作者親自確認修正文案後勾選。
+
+- **2026-07-22（人工規則校對第 4 項）**：
+  - 作者提供官方現行辦法第 22 條畫面；原辦法自 2022-02-01 施行，2025-06-19 修正內容原則自 2025-09-01 施行，第二條指定資格、第 10 條第一項與指定服務碼自 2026-01-01 施行，最後一批附表自 2026-07-01 施行。
+  - 稽核發現 README 雖寫「分階段生效」，仍可能讓讀者誤以為失智症年齡門檻與 PAC 都從 2026-07-01 才生效；已將 `CURRENT_2026_07` 明確改寫為「修正全部施行後的完整快照」，並列出三段施行日期及不支援過渡期日期查詢的邊界。
+  - 確定性報告將「生效基準」改成「完整快照基準」，並直接輸出規則 metadata 的分階段施行說明；新增回歸測試固定三個日期與避免誤讀的文字。
+  - 實跑證據：針對性 **24 passed in 0.64s**、`uv lock --check` 通過、全套 **479 passed in 2.75s**。資格與金額常數未變更，沒有 API 呼叫或成本。
+  - Agent 未代勾校對表、未執行 Git；待作者親自確認新文案後完成第 4 項簽核。
+
+- **2026-07-22（作者完成第 4 項簽核）**：
+  - 作者確認 README 的完整快照標籤與三段施行日期說明，並親自在校對表將第 4 項標為完成；Agent 讀回檔案確認為 `[X]`。
+  - 官方現行條文頁於同日再次查得最近修正日期仍為民國 114 年 6 月 19 日；人工校對剩最後一項「查證日後是否另有修正」。
+  - Agent 未代勾第 5 項、未執行 Git；本次只有進度文件同步，沒有 API 模型呼叫或費用。
+
+- **2026-07-22（五項簽核與最終 release review）**：
+  - 作者重新整理官方現行條文頁，確認最近修正日期仍為民國 114 年 6 月 19 日，並親自完成第 5 項；Agent 讀回校對表確認 **5／5** 均為 `[X]`。
+  - 新增 PLAN D22，明定 `CURRENT_2026_07` 是分階段修正全部施行後的完整快照；README 同步記錄已完成人工校對、法規修正後仍須重新查證。
+  - 實跑 `uv lock --check`、`uv sync --locked --all-groups`、compileall 與完整 pytest，結果 **479 passed in 3.27s**；六支 project skills 均通過 validator。
+  - 離線 CLI 實跑成功：完整快照基準 2026-07-01、CMS 4 第三類服務費 12,000 元，政府給付 10,080 元、自付 1,920 元，核准後報告與完整預覽一致。
+  - 修正 PowerShell release scan 的 `$Matches` 覆寫與 CLI 編碼檢查後重新執行；最終結果為疑似秘密 0、私密絕對路徑 0、個人 email 0、公開禁詞 0、未忽略 50 MB 大檔 0，`.env` 排除規則 1，`.env.example` 非空秘密欄位 0。
+  - README／PLAN／PROGRESS 同步完成後再次執行 lock check、compileall 與全套測試，最終 **479 passed in 3.12s**；快速回憶區 15 行，未超過 30 行限制。
+  - 結論：release review 通過；API／模型成本 US$0。Agent 未執行 Git，待作者建立最後 audit commit 並自行 Push。
