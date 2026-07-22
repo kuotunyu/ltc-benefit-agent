@@ -9,7 +9,7 @@
 - 任何套件若無 Windows wheel 或安裝失敗，先回報並提出替代方案讓我選，不要硬編譯
 
 ## 模型政策
-- 雲端模型字串一律由 .env 設定（GEMINI_MODEL 預設 gemini-3.1-flash-lite；OPENAI_MODEL 預設 gpt-5-mini），程式碼不得寫死；使用前以官方文件確認字串現行有效，失效則回報並建議替代
+- 雲端模型字串一律由 .env 設定（GEMINI_MODEL 預設 gemini-3.5-flash-lite；OPENAI_MODEL 預設 gpt-5-mini），程式碼不得寫死；使用前以官方文件確認字串現行有效，失效則回報並建議替代
 - 分工：主力生成/Agent/VLM 用 GEMINI_MODEL；大量一次性前處理（chunk 摘要、合成資料）用 GEMINI_LITE_MODEL；評審與第二供應商用 OPENAI_MODEL
 - 地端 LLM 首選 taide/Gemma-3-TAIDE-12b-Chat-2602（Ollama 模型名 taide-gemma3-12b 已建好）；輕量情境用 twinkle-ai/gemma-3-4B-T1-it 或 twinkle-ai/Llama-3.2-3B-F1-Instruct
 - Embedding 首選 taide/embeddinggemma-GTAIDE-300m-2605（sentence-transformers 載入；務必依 EmbeddingGemma 規範，query 與 document 使用各自對應的 prompt_name 編碼，否則檢索品質嚴重下降）

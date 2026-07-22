@@ -17,6 +17,7 @@ from pydantic import SecretStr
 from .config import AgentProvider, AgentSettings
 from .privacy import SafeAuditLogger, build_pii_middleware
 from .toolset import ToolBundle, build_tool_bundle
+from .workflow import WorkflowContinuationMiddleware
 
 
 SYSTEM_PROMPT = """你是台灣長照服務資格與額度初步評估 Agent。
@@ -35,6 +36,8 @@ SYSTEM_PROMPT = """你是台灣長照服務資格與額度初步評估 Agent。
 11. 資料完整時依序呼叫 eligibility_check、必要時 copay_estimate、build_report_draft；不可跳過前一步。收到草稿後不要另行解說，立刻用草稿原文呼叫 publish_report。
 12. 呼叫 copay_estimate 時五個參數都要傳入：cms_level、welfare_category、has_foreign_caregiver、planned_spend、rule_version。第一／二／三類分別只能傳 FIRST／SECOND／THIRD；沒有外籍看護也必須明確傳 false。
 13. 對話中的「不是、沒有、無」要傳對應布林 false，不得反轉；「住家裡、居家」只能傳 residence_status=COMMUNITY，除非使用者明說團體家屋或住宿式機構。
+14. 先承接使用者已提供的資料，不得重問已知年齡；只有明確提到多位家人時才要求選一位。年齡、疾病名稱或交通能力不等同失能，應追問洗澡、穿衣、吃飯、起身走動、如廁等日常生活功能及持續期間。
+15. 資訊不足時必須輸出一個簡短、可直接回答的追問；不得只回空內容或只有未完成的工具呼叫。
 """
 
 
@@ -65,7 +68,9 @@ def build_chat_model(
         return init_chat_model(
             settings.gemini_model,
             model_provider="google_genai",
-            temperature=0,
+            # Gemini 3.5 Flash-Lite 起不再接受 sampling 參數；省略
+            # temperature，並依官方 agentic tool-calling 建議使用 medium thinking。
+            thinking_level=settings.gemini_thinking_level,
             **cloud_kwargs,
         )
     if (
@@ -131,6 +136,9 @@ def build_agent_runtime(
                 },
                 description_prefix="完整長照試算報告待人工確認",
             ),
+            # after_model hooks 以反向順序執行；放在 HITL 後方，讓 workflow
+            # 產生的 publish_report tool call 仍會經過人工確認點。
+            WorkflowContinuationMiddleware(),
         ],
         checkpointer=checkpointer or InMemorySaver(),
         name="ltc-benefit-agent",

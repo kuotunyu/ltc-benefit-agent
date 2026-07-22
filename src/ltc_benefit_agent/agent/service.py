@@ -25,6 +25,19 @@ _UNVERIFIED_AMOUNT_MESSAGE = (
 )
 
 
+def _message_text(message: BaseMessage) -> str:
+    if isinstance(message.content, str):
+        return message.content
+    parts: list[str] = []
+    for block in message.content_blocks:
+        if block.get("type") != "text":
+            continue
+        text = block.get("text")
+        if isinstance(text, str) and text.strip():
+            parts.append(text)
+    return "".join(parts)
+
+
 @dataclass(frozen=True, slots=True)
 class AgentTurnResult:
     thread_id: str
@@ -50,7 +63,8 @@ class AgentTurnResult:
         messages = self.state.get("messages", [])
         for message in reversed(messages):
             if isinstance(message, BaseMessage) and message.type in {"ai", "tool"}:
-                if isinstance(message.content, str) and message.content:
+                text = _message_text(message)
+                if text:
                     is_published_report = bool(
                         isinstance(message, AIMessage)
                         and message.additional_kwargs.get(
@@ -60,10 +74,10 @@ class AgentTurnResult:
                     if (
                         isinstance(message, AIMessage)
                         and not is_published_report
-                        and _UNVERIFIED_AMOUNT_PATTERN.search(message.content)
+                        and _UNVERIFIED_AMOUNT_PATTERN.search(text)
                     ):
                         return _UNVERIFIED_AMOUNT_MESSAGE
-                    return message.content
+                    return text
         return ""
 
 

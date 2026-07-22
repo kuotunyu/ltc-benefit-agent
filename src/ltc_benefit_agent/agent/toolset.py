@@ -71,25 +71,27 @@ def build_tool_bundle(audit: SafeAuditLogger | None = None) -> ToolBundle:
 
     @tool("eligibility_check")
     def eligibility_check(
-        age: Annotated[int | None, "實際年齡整數；未知才傳 null"],
-        indigenous: Annotated[bool | None, "是原住民傳 true，不是傳 false"],
+        age: Annotated[int | None, "實際年齡整數；未知才傳 null"] = None,
+        indigenous: Annotated[bool | None, "是原住民傳 true，不是傳 false"] = None,
         has_disability_certificate: Annotated[
             bool | None, "有身障證明傳 true，沒有傳 false"
-        ],
+        ] = None,
         has_dementia_diagnosis: Annotated[
             bool | None, "有確診失智傳 true，沒有傳 false"
-        ],
-        is_pac_case: Annotated[bool | None, "是 PAC 個案傳 true，不是傳 false"],
+        ] = None,
+        is_pac_case: Annotated[
+            bool | None, "是 PAC 個案傳 true，不是傳 false"
+        ] = None,
         has_functional_impairment: Annotated[
             bool | None, "有失能或生活協助需求傳 true，沒有傳 false"
-        ],
+        ] = None,
         impairment_duration_months: Annotated[
             int | None, "失能或協助需求持續月數；未知才傳 null"
-        ],
+        ] = None,
         residence_status: Annotated[
             ResidenceStatusValue,
             "住家裡或居家傳 COMMUNITY；住宿式機構傳 RESIDENTIAL_INSTITUTION；團體家屋才傳 GROUP_HOME",
-        ],
+        ] = "UNKNOWN",
         official_cms_level: Annotated[
             int | None, "正式 CMS 2 到 8；尚未評估或不知道傳 null"
         ] = None,
