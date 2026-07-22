@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import socket
-from pathlib import Path
 
 import gradio as gr
 
@@ -13,90 +12,489 @@ from .controller import GradioController, UiResponse, provider_choices
 
 CSS = """
 :root {
-  --rice: #f2ecdf;
-  --paper: #fffaf0;
-  --ink: #18342c;
-  --ink-soft: #49645c;
-  --seal: #b9482d;
-  --brass: #b08a45;
-  --line: rgba(24, 52, 44, .18);
+  --page: #eef3f1;
+  --surface: #ffffff;
+  --surface-muted: #e5efeb;
+  --surface-tint: #f7faf8;
+  --ink: #17211d;
+  --ink-soft: #4b5d55;
+  --accent: #185a45;
+  --accent-hover: #114735;
+  --accent-soft: #dcebe5;
+  --accent-ink: #0d4634;
+  --line: #cddbd5;
+  --line-strong: #aabfb6;
+  --focus: #1d7256;
+  --radius-control: 10px;
+  --radius-panel: 12px;
+  --shadow-raised: 0 2px 7px rgba(23, 33, 29, .08);
+  --checkbox-background-color-selected: var(--accent);
+  --checkbox-border-color-selected: var(--accent);
+  --checkbox-label-background-fill-selected: transparent;
+  --checkbox-label-border-color-selected: transparent;
+  --checkbox-label-text-color-selected: var(--ink);
 }
 .gradio-container {
-  background:
-    radial-gradient(circle at 15% 10%, rgba(176,138,69,.12) 0 1px, transparent 2px) 0 0/22px 22px,
-    linear-gradient(110deg, var(--rice), #e9e0cf 68%, #ded2bd);
+  min-height: 100vh;
+  gap: 0 !important;
+  background: var(--page);
   color: var(--ink);
-  font-family: "Noto Serif TC", "PMingLiU", serif !important;
+  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif !important;
+  font-size: 19px !important;
 }
-.app-shell { max-width: 1420px; margin: 0 auto; }
-.hero-ledger {
-  position: relative; overflow: hidden; padding: 32px 36px 27px;
-  border: 1px solid var(--line); border-bottom: 4px solid var(--ink);
-  background: rgba(255,250,240,.88); box-shadow: 0 16px 55px rgba(53,42,24,.12);
+.gradio-container main.contain > .column { gap: 0 !important; }
+.app-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin-inline: auto !important;
 }
-.hero-ledger::after {
-  content: "可稽核"; position: absolute; right: 40px; top: 24px;
-  width: 74px; height: 74px; display: grid; place-items: center;
-  border: 3px double var(--seal); color: var(--seal); border-radius: 50%;
-  font-weight: 800; letter-spacing: .18em; transform: rotate(-8deg); opacity: .86;
+.header-wrap {
+  margin: 0 !important;
+  padding: 0 !important;
 }
-.eyebrow { color: var(--seal); letter-spacing: .22em; font-size: 12px; font-weight: 800; }
-.hero-ledger h1 { margin: 8px 100px 6px 0; font-size: clamp(30px,4vw,54px); line-height: 1.05; letter-spacing: -.025em; }
-.hero-ledger p { max-width: 780px; color: var(--ink-soft); margin: 0; font-size: 16px; }
-.sidebar-card, .workbench {
-  border: 1px solid var(--line); background: rgba(255,250,240,.9);
-  box-shadow: 0 12px 38px rgba(48,42,31,.09); padding: 18px;
+.header-wrap .html-container,
+.main-surface > .block:first-child .html-container {
+  padding: 0 !important;
 }
-.sidebar-card { border-top: 5px solid var(--seal); }
-.workbench { border-top: 5px solid var(--brass); }
-.notice { padding: 13px 14px; background: #efe1ca; border-left: 3px solid var(--seal); line-height: 1.7; }
-#conversation { border: 0 !important; background: transparent !important; }
-#conversation .message { border-radius: 2px !important; box-shadow: none !important; }
+.app-header {
+  padding: 24px 2px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.app-header h1 {
+  margin: 0;
+  color: var(--accent-ink);
+  font-size: 34px;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.main-surface {
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+  padding: 10px 0 0 !important;
+}
+#onboarding-section {
+  gap: 12px !important;
+}
+.how-to {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
+}
+.how-to h2 {
+  margin: 0 0 8px;
+  font-size: 22px !important;
+}
+.how-to ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+  margin: 0;
+  padding-left: 24px;
+}
+.how-to li {
+  padding-left: 3px;
+  color: var(--ink);
+  font-size: 19px;
+  line-height: 1.55;
+}
+.how-to li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+.how-to .privacy-line {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: 18px;
+  line-height: 1.5;
+}
+.report-section {
+  gap: 20px !important;
+  margin-bottom: 28px !important;
+  padding: 20px 0 0 !important;
+  border-top: 1px solid var(--line);
+}
+.control-bar {
+  align-items: center;
+  gap: 14px;
+}
+.control-bar .form {
+  border: 0 !important;
+  background: transparent !important;
+}
+.control-bar .block {
+  margin: 0 !important;
+}
+#provider-select,
+#legacy-toggle {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#provider-select input,
+#provider-select [role="combobox"],
+body [role="option"],
+body .options li {
+  font-size: 19px !important;
+  line-height: 1.5 !important;
+}
+#provider-select [role="combobox"] {
+  min-height: 52px !important;
+}
+#legacy-toggle label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 52px;
+  margin: 0 !important;
+}
+#legacy-toggle label,
+#legacy-toggle label span,
+#legacy-toggle [data-testid="block-info"] {
+  color: var(--ink) !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+#legacy-toggle input[type="checkbox"] {
+  flex: 0 0 22px;
+  width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+}
+#restart-button {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-height: 48px;
+  padding-inline: 18px !important;
+  background: var(--surface) !important;
+  border: 2px solid var(--accent) !important;
+  border-radius: var(--radius-control) !important;
+  color: var(--accent-ink) !important;
+  font-weight: 700 !important;
+  transition: background-color 180ms cubic-bezier(.22, 1, .36, 1),
+    color 180ms cubic-bezier(.22, 1, .36, 1),
+    transform 180ms cubic-bezier(.22, 1, .36, 1);
+}
+#restart-button:hover {
+  background: var(--accent-soft) !important;
+}
+#restart-button:active {
+  transform: translateY(1px);
+}
+#advanced-settings {
+  margin: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+.conversation-panel {
+  gap: 10px !important;
+  margin-top: 2px !important;
+}
+.conversation-panel h3 { margin-bottom: 0 !important; }
+.conversation-header {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.conversation-header .prose { flex: 1 1 auto; }
+#current-question {
+  overflow: visible !important;
+  padding: 20px 22px !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: var(--radius-panel) !important;
+  background: var(--surface-tint) !important;
+  box-shadow: var(--shadow-raised) !important;
+}
+#current-question .prose {
+  max-width: none;
+  color: var(--ink) !important;
+  opacity: 1 !important;
+}
+#current-question .prose * { color: var(--ink) !important; opacity: 1 !important; }
+#current-question p,
+#current-question li {
+  margin-block: 0 10px !important;
+  color: var(--ink) !important;
+  font-size: 20px !important;
+  line-height: 1.75 !important;
+  text-wrap: pretty;
+}
+#current-question p:last-child,
+#current-question li:last-child { margin-bottom: 0 !important; }
+.followup-helper {
+  margin: 0 !important;
+  padding: 0 2px !important;
+  color: var(--ink-soft);
+}
+.followup-helper p {
+  margin: 0 !important;
+  font-size: 18px !important;
+  line-height: 1.5 !important;
+}
+.followup-composer {
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 0 !important;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+#current-question,
+.followup-helper,
+.followup-composer,
+#history-section,
+.status-strip {
+  width: 100% !important;
+  max-width: 920px !important;
+  align-self: flex-start !important;
+}
+.gradio-container .gr-accordion > button.label-wrap,
+.gradio-container .gr-accordion > button.label-wrap * {
+  color: var(--ink) !important;
+  font-size: 19px !important;
+  line-height: 1.45 !important;
+}
+.gradio-container .gr-accordion > button.label-wrap {
+  min-height: 50px;
+  padding: 12px 14px !important;
+}
+#history-section {
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-control) !important;
+  background: var(--surface) !important;
+}
+#history-section .gr-accordion {
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--surface) !important;
+}
+#history-section .gr-accordion > button.label-wrap,
+#history-section .gr-accordion > button.label-wrap * {
+  color: var(--accent-ink) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+#history-section .gr-accordion > button.label-wrap {
+  min-height: 54px;
+  padding: 13px 16px !important;
+  transition: background-color 180ms cubic-bezier(.22, 1, .36, 1);
+}
+#history-section .gr-accordion > button.label-wrap:hover {
+  background: var(--accent-soft) !important;
+}
+#conversation {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--surface-tint) !important;
+}
+#conversation .message {
+  border-radius: var(--radius-control) !important;
+  box-shadow: none !important;
+  font-size: 19px !important;
+  line-height: 1.65 !important;
+}
+#conversation .message-row,
+#conversation .message-wrap {
+  padding-block: 6px !important;
+}
+#conversation .placeholder {
+  color: var(--ink-soft) !important;
+  font-size: 19px !important;
+}
+.composer-row {
+  align-items: flex-end;
+  gap: 10px;
+}
+#start-input textarea,
+#followup-input textarea {
+  border-radius: var(--radius-control) !important;
+}
+#start-input [data-testid="block-info"],
+#followup-input [data-testid="block-info"] {
+  color: var(--ink) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
 #report-preview {
-  max-height: 620px; overflow: auto; padding: 24px; background: var(--paper);
-  border: 1px solid var(--line); border-left: 4px solid var(--brass);
+  min-height: 90px;
+  max-height: 600px;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
 }
 #report-preview table, #details-panel table { width: 100%; }
-#approval-row button { min-height: 48px; letter-spacing: .08em; font-weight: 800; }
-#send-button {
+#report-preview p,
+#report-preview li,
+#report-preview td,
+#report-preview th,
+#details-panel,
+.gradio-container .prose p,
+.gradio-container .prose li {
+  font-size: 19px !important;
+  line-height: 1.65 !important;
+}
+.gradio-container h2 { font-size: 26px !important; line-height: 1.3; }
+.gradio-container h3 { font-size: 21px !important; line-height: 1.35; }
+.gradio-container label,
+.gradio-container input,
+.gradio-container textarea,
+.gradio-container button,
+.gradio-container select {
+  font-size: 19px !important;
+}
+.gradio-container [data-testid="block-info"],
+.gradio-container summary {
+  font-size: 19px !important;
+}
+.gradio-container input:not([type="checkbox"]),
+.gradio-container textarea,
+.gradio-container button {
+  min-height: 46px;
+}
+.gradio-container textarea::placeholder,
+.gradio-container input::placeholder {
+  color: #60736b !important;
+  opacity: 1 !important;
+}
+.gradio-container button:focus-visible,
+.gradio-container input:focus-visible,
+.gradio-container textarea:focus-visible,
+.gradio-container [role="listbox"]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent) !important;
+  outline-offset: 2px;
+}
+#approval-row button { min-height: 50px; font-weight: 700; }
+#start-button,
+#followup-button {
   --button-primary-background-fill: var(--ink);
-  --button-primary-background-fill-hover: #10271f;
-  --button-primary-border-color: var(--ink);
-  --button-primary-text-color: #fffaf0;
-  background: var(--ink) !important; color: #fffaf0 !important; border-color: var(--ink) !important;
+  --button-primary-background-fill-hover: var(--accent-hover);
+  --button-primary-border-color: var(--accent);
+  --button-primary-text-color: #ffffff;
+  min-height: 52px;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: var(--accent) !important;
+  border-radius: var(--radius-control) !important;
+  font-weight: 700;
+  transition: background-color 180ms cubic-bezier(.22, 1, .36, 1),
+    transform 180ms cubic-bezier(.22, 1, .36, 1);
+}
+#start-button:hover,
+#followup-button:hover {
+  background: var(--accent-hover) !important;
+}
+#start-button:active,
+#followup-button:active {
+  transform: translateY(1px);
 }
 footer { display: none !important; }
-input[type="checkbox"] { accent-color: var(--seal) !important; }
-#approve-button { background: var(--ink) !important; color: #fffaf0 !important; }
-#reject-button { background: transparent !important; color: var(--seal) !important; border-color: var(--seal) !important; }
-.status-strip { border: 1px dashed var(--line); padding: 8px 12px; background: rgba(255,255,255,.35); }
-@media (max-width: 780px) {
-  .hero-ledger { padding: 24px 20px; }
-  .hero-ledger::after { right: 16px; top: 18px; width: 58px; height: 58px; font-size: 12px; }
-  .hero-ledger .eyebrow { padding-right: 76px; }
-  #conversation { height: 350px !important; min-height: 350px !important; }
+input[type="checkbox"] { accent-color: var(--accent) !important; }
+#approve-button { background: var(--accent) !important; color: #ffffff !important; }
+#reject-button { background: transparent !important; color: #8b2f2f !important; border-color: #b65a5a !important; }
+.status-strip {
+  margin: 0;
+  padding: 0 2px;
+  color: var(--ink-soft);
+}
+.status-strip p { margin: 0; font-size: 19px !important; }
+@media (max-width: 900px) {
+  .gradio-container { padding-inline: 12px !important; }
+  .app-shell { width: 100%; }
+  .app-header { padding: 14px 2px 8px; }
+  .app-header { border-bottom: 0; }
+  .app-header h1 { font-size: 30px; }
+  .main-surface { padding: 0 !important; }
+  .report-section { padding: 16px 0 0 !important; }
+  .control-bar { flex-wrap: wrap; gap: 8px; }
+  .how-to ol { grid-template-columns: 1fr; }
+  #current-question { padding: 16px !important; }
+  #current-question p, #current-question li { font-size: 19px !important; }
+  #conversation { height: 300px !important; min-height: 300px !important; }
+  #start-button, #followup-button { min-height: 52px; }
+  .followup-composer { padding: 0; }
+  .conversation-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .conversation-header .prose {
+    width: 100% !important;
+  }
+  #restart-button {
+    width: 100% !important;
+    margin-top: 2px;
+  }
+  #history-section .gr-accordion > button.label-wrap { padding: 14px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 """
 
 
 HEADER = """
-<div class="app-shell hero-ledger">
-  <div class="eyebrow">LONG-TERM CARE · BENEFIT LEDGER</div>
-  <h1>長照額度，算清楚再決定。</h1>
-  <p>對話負責問對問題，Python 負責每一塊錢。CMS 未知不猜級；報告發布前由你親自校閱。</p>
+<div class="app-shell app-header">
+  <h1>長照 2.0 資格與補助初步試算</h1>
+</div>
+"""
+
+
+HOW_TO = """
+<div class="how-to">
+  <h2>照這 4 步操作</h2>
+  <ol>
+    <li><strong>一次選一位家人</strong>；多人請分開評估。</li>
+    <li><strong>在下方欄位打字</strong>；先寫年齡和需要協助的事情。</li>
+    <li><strong>按「開始資格初篩」</strong>；系統一次問一輪，直接在問題下方回答。</li>
+    <li><strong>檢查試算報告</strong>；資料足夠後才會顯示金額與核准按鈕。</li>
+  </ol>
+  <p class="privacy-line"><strong>請勿輸入</strong>姓名、身分證、電話或地址；正式結果仍以照管中心為準。</p>
 </div>
 """
 
 
 def _updates(response: UiResponse):
+    has_conversation = bool(response.history)
+    has_report = bool(response.preview or response.details or response.sources)
+    has_status = bool(response.status.strip())
+    current_question = next(
+        (
+            item.get("content", "")
+            for item in reversed(response.history)
+            if item.get("role") == "assistant"
+        ),
+        "",
+    )
+    if has_report:
+        current_question = response.status or "報告已完成，請查看下方報告校閱區。"
     return (
         response.history,
+        current_question,
         response.preview,
         response.details,
         response.sources,
         gr.update(visible=response.approval_visible),
         gr.update(visible=response.approval_visible),
-        response.status,
+        gr.update(value=response.status, visible=has_status),
+        gr.update(visible=not has_conversation),
+        gr.update(visible=has_conversation and not has_report),
+        gr.update(visible=has_conversation),
+        gr.update(visible=has_report),
     )
 
 
@@ -113,7 +511,7 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
             text=text,
             history=history,
         )
-        return ("", *_updates(response))
+        return ("", "", *_updates(response))
 
     def decide_report(decision: str, history, provider, request: gr.Request):
         response = controller.decide(
@@ -132,103 +530,191 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
 
     def clear_session(request: gr.Request):
         controller.clear(request.session_hash or "")
-        return [], "", "", "", gr.update(visible=False), gr.update(visible=False), "已清除本次 session。"
+        return (
+            [],
+            "",
+            "",
+            "",
+            "",
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(value="", visible=False),
+            gr.update(visible=True),
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=False),
+        )
 
     with gr.Blocks(
         title="長照額度初步試算",
         fill_width=True,
     ) as demo:
-        gr.HTML(HEADER)
-        with gr.Row(elem_classes="app-shell"):
-            with gr.Column(scale=1, min_width=280, elem_classes="sidebar-card"):
-                gr.Markdown("### 評估設定")
-                provider = gr.Dropdown(
-                    choices=choices,
-                    value=default_provider,
-                    label="模型模式",
-                    interactive=True,
-                )
-                compare_legacy = gr.Checkbox(
-                    label="並列 2022 舊制比較",
-                    value=False,
-                )
-                gr.HTML(
-                    "<div class='notice'><strong>先說清楚</strong><br>"
-                    "請不要輸入姓名、身分證、電話或地址。這是初步試算，正式結果仍以照管中心為準。</div>"
-                )
-                clear = gr.Button("清除此 session", variant="secondary")
-                gr.Markdown(
-                    "**建議先準備**  \n年齡、服務對象身分、住宿狀態、正式 CMS、福利類別、外籍看護與預計服務費。"
-                )
+        gr.HTML(HEADER, elem_classes="header-wrap")
+        with gr.Column(elem_classes=["app-shell", "main-surface"]):
+            with gr.Column(visible=True, elem_id="onboarding-section") as onboarding_section:
+                gr.HTML(HOW_TO)
 
-            with gr.Column(scale=3, min_width=520):
-                with gr.Column(elem_classes="workbench"):
+                with gr.Row(elem_classes="composer-row"):
+                    start_text = gr.Textbox(
+                        label="先描述這位家人的情況",
+                        placeholder="例如：家人 82 歲，洗澡與穿衣需要協助，已持續 8 個月",
+                        lines=2,
+                        scale=6,
+                        min_width=320,
+                        elem_id="start-input",
+                    )
+                    start_send = gr.Button(
+                        "開始資格初篩",
+                        variant="primary",
+                        elem_id="start-button",
+                        scale=1,
+                        min_width=180,
+                    )
+
+                with gr.Accordion(
+                    "進階設定（一般不用調整）",
+                    open=False,
+                    elem_id="advanced-settings",
+                ):
+                    with gr.Row(elem_classes="control-bar"):
+                        with gr.Column(scale=4, min_width=260):
+                            provider = gr.Dropdown(
+                                choices=choices,
+                                value=default_provider,
+                                label="模型模式",
+                                interactive=True,
+                                elem_id="provider-select",
+                            )
+                        with gr.Column(scale=3, min_width=230):
+                            compare_legacy = gr.Checkbox(
+                                label="同時顯示 2022 舊制",
+                                value=False,
+                                elem_id="legacy-toggle",
+                            )
+
+            status = gr.Markdown(
+                "",
+                visible=False,
+                elem_classes="status-strip",
+            )
+
+            with gr.Column(
+                visible=False,
+                elem_id="conversation-section",
+                elem_classes="conversation-panel",
+            ) as conversation_section:
+                with gr.Row(elem_classes="conversation-header"):
+                    gr.Markdown("### 系統現在想問你")
+                    clear = gr.Button(
+                        "重新評估另一位家人",
+                        variant="secondary",
+                        elem_id="restart-button",
+                        min_width=240,
+                    )
+                current_question = gr.Markdown("", elem_id="current-question")
+                gr.Markdown(
+                    "系統會根據你的回答繼續追問，直到資料足夠產生報告。",
+                    elem_classes="followup-helper",
+                )
+                with gr.Row(elem_classes=["composer-row", "followup-composer"]):
+                    followup_text = gr.Textbox(
+                        label="直接回答上面的問題",
+                        placeholder="把你知道的情況寫在這裡；不知道也可以直接說不知道",
+                        lines=2,
+                        scale=6,
+                        min_width=320,
+                        elem_id="followup-input",
+                    )
+                    followup_send = gr.Button(
+                        "送出回答",
+                        variant="primary",
+                        elem_id="followup-button",
+                        scale=1,
+                        min_width=180,
+                    )
+
+            with gr.Column(visible=False, elem_id="history-section") as history_section:
+                with gr.Accordion("查看完整對話紀錄", open=False):
                     chatbot = gr.Chatbot(
                         label="對話紀錄",
+                        show_label=False,
                         elem_id="conversation",
-                        height=470,
+                        height=320,
                         layout="panel",
-                        buttons=["copy"],
+                        buttons=["copy_all"],
                         feedback_options=None,
-                        placeholder="從家人的年齡與目前需要哪些協助開始。",
-                    )
-                    text = gr.Textbox(
-                        label="補充情況",
-                        placeholder="例如：家人 70 歲，生活協助已持續 8 個月……",
-                        lines=3,
-                    )
-                    send = gr.Button(
-                        "送出並檢查缺漏", variant="primary", elem_id="send-button"
-                    )
-                    status = gr.Markdown(
-                        "🟢 尚未開始；資料只應包含試算必要欄位。",
-                        elem_classes="status-strip",
+                        placeholder="尚無對話紀錄。",
                     )
 
-        with gr.Row(elem_classes="app-shell"):
-            with gr.Column(scale=2, elem_classes="workbench"):
-                gr.Markdown("## 人工校閱台")
+        with gr.Row(
+            visible=False,
+            elem_id="report-section",
+            elem_classes=["app-shell", "report-section"],
+        ) as report_section:
+            with gr.Column(scale=2, min_width=520):
+                gr.Markdown("## 報告校閱")
                 report_preview = gr.Markdown(
-                    "尚未產生報告草稿。",
+                    "完成資料蒐集後，報告草稿會顯示在這裡。",
                     elem_id="report-preview",
                 )
                 with gr.Row(elem_id="approval-row"):
                     approve = gr.Button("核准並發布", visible=False, elem_id="approve-button")
-                    reject = gr.Button("拒絕，回去修正", visible=False, elem_id="reject-button")
-            with gr.Column(scale=1, elem_classes="sidebar-card"):
+                    reject = gr.Button("拒絕並繼續修正", visible=False, elem_id="reject-button")
+            with gr.Column(scale=1, min_width=300):
                 with gr.Accordion("試算明細", open=True):
                     details = gr.Markdown("尚無明細。", elem_id="details-panel")
                 with gr.Accordion("法源與申請來源", open=False):
                     sources = gr.Markdown("尚無引用來源。")
 
         submit_outputs = [
-            text,
+            start_text,
+            followup_text,
             chatbot,
+            current_question,
             report_preview,
             details,
             sources,
             approve,
             reject,
             status,
+            onboarding_section,
+            conversation_section,
+            history_section,
+            report_section,
         ]
-        text.submit(
+        start_text.submit(
             submit_message,
-            [text, chatbot, provider, compare_legacy],
+            [start_text, chatbot, provider, compare_legacy],
             submit_outputs,
         )
-        send.click(
+        start_send.click(
             submit_message,
-            [text, chatbot, provider, compare_legacy],
+            [start_text, chatbot, provider, compare_legacy],
+            submit_outputs,
+        )
+        followup_text.submit(
+            submit_message,
+            [followup_text, chatbot, provider, compare_legacy],
+            submit_outputs,
+        )
+        followup_send.click(
+            submit_message,
+            [followup_text, chatbot, provider, compare_legacy],
             submit_outputs,
         )
         decision_outputs = [
             chatbot,
+            current_question,
             report_preview,
             details,
             sources,
             approve,
             reject,
             status,
+            onboarding_section,
+            conversation_section,
+            history_section,
+            report_section,
         ]
         approve.click(
             approve_report,
