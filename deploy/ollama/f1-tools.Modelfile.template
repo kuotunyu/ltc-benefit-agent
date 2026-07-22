@@ -1,0 +1,54 @@
+FROM __GGUF_PATH__
+
+# 原模型以 Hermes tool-calling 格式訓練。此模板讓 Ollama 的 native tools
+# 參數進入同一種 <tool_call>/<tool_response> 對話外框。
+TEMPLATE """<|begin_of_text|>{{- if or .System .Tools }}<|start_header_id|>system<|end_header_id|>
+
+{{- if .System }}{{ .System }}
+
+{{ end -}}
+{{- if .Tools }}# Tools
+
+You may call one or more functions. Function signatures are inside <tools></tools>:
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+For each function call, output exactly:
+<tool_call>
+{"name": "function-name", "arguments": {"argument": "value"}}
+</tool_call>
+{{- end }}<|eot_id|>
+{{- end }}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+{{- if eq .Role "user" }}<|start_header_id|>user<|end_header_id|>
+
+{{ .Content }}<|eot_id|>
+{{- else if eq .Role "assistant" }}<|start_header_id|>assistant<|end_header_id|>
+
+{{- if .Content }}{{ .Content }}{{ end }}
+{{- if .ToolCalls }}
+{{- range .ToolCalls }}<tool_call>
+{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+</tool_call>
+{{- end }}
+{{- end }}{{ if not $last }}<|eot_id|>
+{{ end }}
+{{- else if eq .Role "tool" }}<|start_header_id|>ipython<|end_header_id|>
+
+<tool_response>
+{{ .Content }}
+</tool_response><|eot_id|>
+{{- end }}
+{{- if and (ne .Role "assistant") $last }}<|start_header_id|>assistant<|end_header_id|>
+
+{{- end }}
+{{- end }}"""
+
+PARAMETER temperature 0
+PARAMETER num_ctx 8192
+PARAMETER stop <|eot_id|>
+PARAMETER stop <|end_of_text|>

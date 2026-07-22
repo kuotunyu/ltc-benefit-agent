@@ -1,0 +1,49 @@
+FROM gemma3:12b
+
+# Gemma 3 本身沒有 Ollama native-tools capability。這個明示的評估 adapter
+# 只為同一 20 題診斷集提供工具定義與 Hermes-style tool-call 外框；不可把
+# 結果宣稱為原始模型的原生 function-calling 成績。
+TEMPLATE """{{- if or .System .Tools }}<start_of_turn>user
+{{- if .System }}{{ .System }}
+
+{{ end -}}
+{{- if .Tools }}# 可用工具
+
+你可以呼叫下列工具。工具定義位於 <tools></tools>：
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+需要呼叫工具時，只輸出下列格式，可連續輸出多個呼叫：
+<tool_call>
+{"name": "工具名稱", "arguments": {"參數": "值"}}
+</tool_call>
+{{- end }}<end_of_turn>
+{{- end }}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+{{- if eq .Role "user" }}<start_of_turn>user
+{{ .Content }}<end_of_turn>
+{{- else if eq .Role "assistant" }}<start_of_turn>model
+{{- if .Content }}{{ .Content }}{{ end }}
+{{- if .ToolCalls }}
+{{- range .ToolCalls }}<tool_call>
+{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+</tool_call>
+{{- end }}
+{{- end }}{{ if not $last }}<end_of_turn>
+{{ end }}
+{{- else if eq .Role "tool" }}<start_of_turn>user
+<tool_response>
+{{ .Content }}
+</tool_response><end_of_turn>
+{{- end }}
+{{- if and (ne .Role "assistant") $last }}<start_of_turn>model
+{{- end }}
+{{- end }}"""
+
+PARAMETER temperature 0
+PARAMETER num_ctx 8192
+PARAMETER stop <end_of_turn>
