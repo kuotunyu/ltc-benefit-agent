@@ -100,3 +100,23 @@ def test_public_inputs_do_not_accept_pii_fields() -> None:
 def test_invalid_rule_version_lookup_is_rejected() -> None:
     with pytest.raises(TypeError):
         get_rule_snapshot("CURRENT_2026_07")  # type: ignore[arg-type]
+
+
+def test_public_ci_is_windows_locked_and_secret_free() -> None:
+    workflow = (
+        Path(__file__).parents[1] / ".github" / "workflows" / "ci.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "runs-on: windows-latest" in workflow
+    assert "actions/checkout@v7" in workflow
+    assert (
+        "astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b"
+        in workflow
+    )
+    assert 'version: "0.11.18"' in workflow
+    assert "uv python install 3.11" in workflow
+    assert "uv lock --check" in workflow
+    assert "uv sync --locked --group dev" in workflow
+    assert "uv run pytest -q" in workflow
+    assert "uv build" in workflow
+    assert "secrets." not in workflow

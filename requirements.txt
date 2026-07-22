@@ -1,0 +1,4 @@
+# Space 使用 pip；完整 runtime constraints 由 uv.lock 匯出，避免頂層或
+# transitive dependency 漂移。最後以 editable install 安裝 src package。
+-r requirements.lock.txt
+-e .
