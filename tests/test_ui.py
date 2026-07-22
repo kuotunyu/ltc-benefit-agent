@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import socket
+import subprocess
+import tomllib
+from pathlib import Path
 from types import SimpleNamespace
 
 import gradio as gr
@@ -23,6 +26,9 @@ from ltc_benefit_agent.ui.controller import (
     available_providers,
     provider_choices,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 REPORT = """# 長照服務資格與補助初步建議書
@@ -165,6 +171,57 @@ def test_space_only_exposes_cloud_provider(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("SPACE_ID", "owner/demo")
     assert available_providers() == (AgentProvider.GEMINI,)
     assert provider_choices() == [("雲端模式", "gemini")]
+
+
+def test_space_metadata_and_install_entrypoint_are_complete() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert readme.startswith("---\n")
+    frontmatter = readme.split("---", 2)[1]
+    for required in (
+        "sdk: gradio",
+        "sdk_version: 6.20.0",
+        'python_version: "3.11"',
+        "app_file: app.py",
+        "fullWidth: true",
+        "header: mini",
+    ):
+        assert required in frontmatter
+    requirements_lines = (ROOT / "requirements.txt").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    active_requirements = [
+        line for line in requirements_lines if line and not line.startswith("#")
+    ]
+    assert active_requirements == ["-r requirements.lock.txt", "-e ."]
+
+    exported = subprocess.check_output(
+        [
+            "uv",
+            "export",
+            "--locked",
+            "--format",
+            "requirements.txt",
+            "--no-dev",
+            "--no-emit-project",
+            "--no-hashes",
+            "--no-annotate",
+            "--no-header",
+        ],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+    )
+    assert (ROOT / "requirements.lock.txt").read_text(encoding="utf-8") == exported
+
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    locked_versions: dict[str, set[str]] = {}
+    for package in lock["package"]:
+        locked_versions.setdefault(package["name"], set()).add(package["version"])
+    for line in exported.splitlines():
+        requirement = line.split(" ; ", 1)[0]
+        name, version = requirement.split("==", 1)
+        assert version in locked_versions[name]
+    assert (ROOT / "app.py").is_file()
 
 
 def test_empty_model_reply_separates_multiple_people() -> None:
