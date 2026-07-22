@@ -52,6 +52,11 @@
 | D20 | 2026-07-22 | Context7 只作開發期外部 API 查證；先比對 `uv.lock`，查證摘要留在 PROGRESS，不加入正式 Agent runtime | 避免套件更新造成舊 API 實作，同時不把民眾對話或專案秘密送往文件服務 |
 | D21 | 2026-07-22 | 雲端診斷共用 12 requests/minute 限速器、停用 connector 自動重試；只有零進度 quota 錯誤可換 slot | 實測專案限制為 15 requests/minute；保留 20% 安全邊際並防止重送造成不可控成本 |
 | D22 | 2026-07-22 | `CURRENT_2026_07` 表示分階段修正全部施行後的完整快照；報告顯示「完整快照基準」並列出各階段日期 | 第 22 條明定不同修正分別於 2025-09-01、2026-01-01、2026-07-01 施行，不能把快照日期誤寫成所有規則的單一生效日 |
+| D23 | 2026-07-22 | Gradio 採簡潔的產品工具介面；品牌感受為清楚、可信、平靜，正文以約 18 px 與 WCAG AA 為基準 | 主要使用者包含高齡者與家庭照顧者，任務效率、可讀性與資訊層級應優先於帳冊、印章等裝飾性視覺 |
+| D24 | 2026-07-22 | 模型在成功工具後提早停止時，由 workflow middleware 依既有工具證據有限續跑；每階段最多提醒一次、每輪最多三次，缺漏資訊時不介入 | 20 題 trace 顯示主要失敗點是資格／金額工具完成後未建稿或未發布；續跑層只控制既定順序，不解析使用者敘述、不補參數，也不碰資格與金額判斷 |
+| D25 | 2026-07-22 | `copay_estimate` 成功後由 middleware 複製已驗證的資格／金額 tool args 建稿；`build_report_draft` 成功後複製 registry 回傳的 ID 與原文送進既有 HITL | 3B 實測即使收到續跑提示仍不願呼叫複雜建稿工具；確定性接續不需要重新解析對話或請 LLM 重抄數字，且 publish 仍必須 approve／reject |
+| D26 | 2026-07-22 | F1 Ollama Hermes template 的每個 `<tool_response>` 必須同時包含 `.ToolName` 與 `.Content` | 官方 tokenizer chat template 以工具名配對回傳；舊模板只放內容，實測造成第一個工具後空白，修正後 S11／S14 與固定 20 題能繼續多工具流程 |
+| D27 | 2026-07-22 | 雲端主模型遷移為 stable `gemini-3.5-flash-lite`；不傳 `temperature`／`top_p`／`top_k`，tool-calling 預設 `thinking_level=medium` 且可由環境變數調整 | 官方模型頁確認新型號為 GA 且支援 function calling；遷移文件要求移除 sampling 參數，並建議多步工具任務使用 medium 或 high thinking |
 
 ## 公開介面與計算契約
 
@@ -218,7 +223,7 @@ DoD：
 | 申請流程與額度說明 | [1966 長照專區](https://1966.gov.tw/ltc/cp-6533-70777-207.html) | 下一步申請流程與民眾說明交叉校對 |
 | LangChain Agent | [Agents 官方文件](https://docs.langchain.com/oss/python/langchain/agents) | Phase 2 `create_agent` API |
 | PII／HITL | [Guardrails](https://docs.langchain.com/oss/python/langchain/guardrails)、[Human-in-the-loop](https://docs.langchain.com/oss/python/langchain/human-in-the-loop) | middleware 與 interrupt 行為 |
-| Gemini 模型 | [Gemini 3.1 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite) | 開工日再次確認有效字串與 function calling |
+| Gemini 模型 | [Gemini 3.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite) | 2026-07-22 確認 stable model ID、function calling 與遷移限制 |
 | F1 原模型 | [F1-Instruct 模型卡](https://huggingface.co/twinkle-ai/Llama-3.2-3B-F1-Instruct) | 權重、授權、Hermes／BFCL 背景資料 |
 
 政府開放資料於 README 標示政府資料開放授權條款第 1 版；任何數值在 Phase 1 必須由人工逐項對照官方附件，不以搜尋摘要作唯一依據。
