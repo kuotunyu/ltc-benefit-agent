@@ -67,6 +67,7 @@ class ScriptedBenefitModel(BaseChatModel):
     seen_batches: list[tuple[BaseMessage, ...]] = Field(default_factory=list)
     bound_tool_names: list[str] = Field(default_factory=list)
     escape_publish_markdown: bool = False
+    copay_welfare_category: str = "THIRD"
 
     @property
     def _llm_type(self) -> str:
@@ -130,6 +131,7 @@ class ScriptedBenefitModel(BaseChatModel):
                 )
             }
             args["cms_level"] = COMPLETE_REPORT_ARGS["official_cms_level"]
+            args["welfare_category"] = self.copay_welfare_category
             message = AIMessage(
                 content="",
                 tool_calls=[
@@ -1055,6 +1057,54 @@ def test_report_uses_human_readable_eligibility_labels() -> None:
     assert "符合身分依據：65 歲以上老人" in report
     assert "CMS_PROVIDED_FOR_ESTIMATE" not in report
     assert "AGE_65_OR_OVER" not in report
+
+
+@pytest.mark.parametrize(
+    ("user_label", "expected"),
+    [
+        ("第一類", "FIRST"),
+        ("長照低收入戶", "FIRST"),
+        ("第二類", "SECOND"),
+        ("長照中低收入戶", "SECOND"),
+        ("第三類", "THIRD"),
+        ("長照一般戶", "THIRD"),
+        ("一般戶", "THIRD"),
+    ],
+)
+def test_intake_normalizes_welfare_category_labels(
+    user_label: str, expected: str
+) -> None:
+    _, copay = merge_explicit_case_facts(f"福利身分是{user_label}")
+
+    assert copay["welfare_category"] == expected
+
+
+def test_explicit_general_household_overrides_wrong_model_category() -> None:
+    model = ScriptedBenefitModel(copay_welfare_category="FIRST")
+    audit = SafeAuditLogger()
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=model, audit=audit)
+    )
+
+    pending = service.send_message(
+        "thread-general-household",
+        "家人 75 歲，不是原住民，沒有身障證明、失智或 PAC；"
+        "需要協助已 8 個月，住家裡。正式 CMS 4，屬一般戶，"
+        "沒有外籍看護，預計服務費 18000 元。",
+    )
+
+    assert pending.awaiting_approval
+    assert pending.pending_report_preview is not None
+    assert "| 法定福利類別 | 第三類 |" in pending.pending_report_preview
+    assert "| 部分負擔比率 | 16% |" in pending.pending_report_preview
+    assert "| 政府給付 | NT$ 15,120 |" in pending.pending_report_preview
+    assert "| 額度內部分負擔 | NT$ 2,880 |" in pending.pending_report_preview
+    copay_calls = [
+        event.payload
+        for event in audit.snapshot()
+        if event.event == "tool_call" and event.tool_name == "copay_estimate"
+    ]
+    assert copay_calls[-1]["welfare_category"] == "THIRD"
 
 
 def test_tools_reject_invalid_money_arguments_without_llm_math() -> None:

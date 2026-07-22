@@ -121,7 +121,7 @@ def build_tool_bundle(audit: SafeAuditLogger | None = None) -> ToolBundle:
         cms_level: Annotated[int, "必填；只能傳正式 CMS 整數 2 到 8"],
         welfare_category: Annotated[
             WelfareCategoryValue,
-            "必填；第一類傳 FIRST、第二類傳 SECOND、第三類傳 THIRD，不可傳數字",
+            "必填；第一類／長照低收入戶傳 FIRST、第二類／長照中低收入戶傳 SECOND、第三類／長照一般戶／一般戶傳 THIRD，不可傳數字",
         ],
         has_foreign_caregiver: Annotated[
             bool,

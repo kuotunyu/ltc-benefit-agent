@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub／公開 Space 已同步至 `7e06a7c`，Space 為 `RUNNING`／CPU Basic，公開首頁 HTTP 200。作者手動雲端對話已走到報告草稿，發現舊制比較誤切主版本與 raw enum 顯示問題；本機修正已完成，待完整回歸與重新部署驗收。
-- **本次完成**：Space 第四次 Build 通過 Gradio MCP／Pydantic resolver；比較選項改用不含 `LEGACY_2022`／2022／舊制字樣的內部 directive，主版本維持 `CURRENT_2026_07`；公開報告的資格狀態與身分依據改為正體中文。
-- **實跑總證據**：Hugging Face API 回報 commit `7e06a7c`、stage `RUNNING`、hardware `cpu-basic`；公開端點 HTTP 200。版本／報告修正的 Agent＋UI 專屬 **38 passed in 2.74s**；`uv lock --check`、完整 pytest **500 passed in 3.10s**、sdist／wheel build 均成功。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub／公開 Space 已同步至 `7aa06bf` 且為 `RUNNING`。公開複驗已確認主版本改回 `CURRENT_2026_07`、資格文案為正體中文，但發現模型把「一般戶」誤傳為第一類；確定性正規化已在本機完成，待重新部署驗收。
+- **本次完成**：Space 第四次 Build 通過；比較選項使用專用 directive，主版本維持現制；公開資格 status／basis 改為中文。第二輪再把第一／二／三類與低收／中低收／一般戶同義詞鎖進 intake，使用者明確值優先覆蓋模型參數。
+- **實跑總證據**：Hugging Face API 回報 `7aa06bf`、stage `RUNNING`、CPU Basic；公開畫面證明現制與中文修正生效。福利類別回歸以模型故意傳錯 FIRST 驗證一般戶仍進 `THIRD`；Agent **35 passed in 1.02s**，`uv lock --check`、完整 pytest **508 passed in 3.20s**、sdist／wheel build 均成功。
 - **Context7**：以 `/websites/langchain_oss_python` 查證 LangChain 1.x `wrap_model_call` 有限重試、`ModelRequest.override`、動態工具子集與 `tool_choice`；再以鎖定的 LangChain 1.3.14／Ollama connector 實作複核。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者提交本輪公開驗收修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
-  2. 清除舊 Space session，以勾選舊制比較的已知 CMS 情境重跑；主報告必須為 `CURRENT_2026_07`，另列 `LEGACY_2022` 比較，核准後最終文字須與預覽一致。
+  1. 作者提交福利類別正規化修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
+  2. 清除舊 Space session，以勾選舊制比較的已知 CMS／一般戶情境重跑；主報告須為 `CURRENT_2026_07`，一般戶須為第三類 16%，另列 `LEGACY_2022` 比較，核准後最終文字須與預覽一致。
   3. 再完成 unknown CMS 與手機寬度公開 smoke；若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限，最後才決定 `phase-4` tag／Release。
 - **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：`origin`／`space` 目前都是 `7e06a7c`；本輪 version intent／report label 修正與文件待測試通過後由作者自行 commit，再依序 Push 兩個 remote。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：比較用的文字若含 `LEGACY_2022`、2022 或「舊制」，intake 會合理視為切換版本，因此 UI 必須使用專用 directive；Space builder 仍須連同 Gradio MCP extras 驗證；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：`origin`／`space` 目前都是 `7aa06bf`；福利類別正規化、prompt／tool schema、測試與文件待作者自行 commit，再依序 Push 兩個 remote。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：福利類別不能依賴模型理解「一般戶」等同第三類，必須由 intake 覆蓋；比較 UI 必須使用專用 directive；Space builder 仍須連同 Gradio MCP extras 驗證；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -487,3 +487,11 @@
   - 修正以 `INTERFACE_COMPARE_HISTORICAL_SNAPSHOT=true; PRIMARY_RULE=CURRENT_2026_07` 專用 directive 表達比較意圖；workflow 仍建立 legacy 附錄，但 intake 主版本只看到現制。renderer 另把四種資格狀態與五種身分依據轉為正體中文，工具／trace enum 不變。新增 PLAN D37。
   - 實跑證據：新增 UI directive、intake version intent、workflow comparison 與 report label 回歸斷言；Agent＋UI 專屬 **38 passed in 2.74s**。隨後 `uv lock --check`、完整 pytest **500 passed in 3.10s**，sdist／wheel build 均成功。
   - 成本與 Git：作者手動 Space 對話會使用 Gemini，但本輪沒有 usage metadata，實際費用以帳單為準；Agent 未另發模型請求、未讀取 `.env`、未執行 Git。測試完成後建議 commit：`fix(report): 修正舊制比較版本與資格中文顯示`。
+
+- **2026-07-23（公開一般戶試算驗收與福利類別正規化）**：
+  - 作者自行建立並同步 `7aa06bf fix(report): 修正舊制比較版本與資格中文顯示`；Hugging Face API 回報相同 SHA、`RUNNING`、CPU Basic。公開複驗確認主報告已改為 `CURRENT_2026_07`，資格結論與「65 歲以上老人」均為正體中文，不再洩漏 raw enum。
+  - 同一張公開草稿顯示使用者明確輸入「一般戶」卻被模型傳成第一類，導致部分負擔 0%、政府給付 18,000 元。正確應為第三類 16%、政府給付 15,120 元、額度內部分負擔 2,880 元；作者尚未核准錯誤草稿。
+  - intake 新增福利身分同義詞正規化：第一類／長照低收入戶、第二類／長照中低收入戶、第三類／長照一般戶／一般戶；每輪使用最後一個明確標籤，並在 tool middleware 中覆蓋模型參數。system prompt 與 tool schema 同步說明對應關係，新增 PLAN D38。
+  - 回歸案例讓模型故意送出 `FIRST`、使用者輸入「一般戶」，最終 `copay_estimate` audit payload 仍為 `THIRD`，草稿為第三類、16%、政府給付 15,120 元、自付 2,880 元。另以七種公開標籤逐一驗證映射。
+  - 實跑證據：Agent 專屬 **35 passed in 1.02s**；`uv lock --check`、完整 pytest **508 passed in 3.20s**，sdist／wheel build 均成功。
+  - 成本與 Git：作者手動 Space 對話的實際 token／費用無法由畫面取得；Agent 未另發模型請求、未讀取 `.env`、未執行 Git。建議 commit：`fix(agent): 鎖定福利身分類別正規化`。
