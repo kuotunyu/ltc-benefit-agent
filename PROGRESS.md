@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 1–4、三模式 20 題、規則人工校對 5／5 與 GitHub 公開上線完成；UI／UX 暫時定版，主線正處理 Agent 可靠性與雲端模型遷移。
-- **本次完成**：stable `gemini-3.5-flash-lite` 遷移與真實 connector smoke 完成；雲端不傳 sampling 參數，medium thinking、連線與單次 function call 均已驗證，未改 `.env` 真值。
-- **實跑總證據**：Agent＋evaluator **34 passed**；Gemini 遷移專屬 Agent 測試 **21 passed**；完整 pytest **490 passed in 2.86s**。Gemini 3.5 smoke 為 1 次正確工具呼叫；F1 S11／S14 皆端到端 1／1。
-- **Context7**：以 `/websites/langchain_oss` 查證 LangChain 1.x `AgentMiddleware`、`after_model`、`hook_config(can_jump_to=["model"])` 與 state update；並以鎖定套件 signature 複核。
-- **本機 20 題強化後**：12B adapter 為追問 17、選工具 17、參數 16、金額 18、PII 0、HITL 17、端到端 12；F1 為 16、12、16、19、0、12、10。
-- **本機舊基線**：12B adapter 端到端 3／20、F1 0／20；強化後分別為 12／20、10／20，但追問／參數／金額仍各有退步項，README 已分表呈現。
+- **現在做到哪**：Phase 1–4、規則人工校對 5／5、GitHub 公開上線、UI／UX 暫時定版、Space-ready 檔案與地端 Agent 可靠性強化完成；雲端新版只完成 connector smoke，尚未重跑完整 20 題。
+- **本次完成**：12B 漏掉首次資格工具時新增最多一次的隔離結構化重試；只暴露 `eligibility_check` 與遮蔽後明確欄位，僅正規化模型明確輸出的合法 JSON tool call，不猜意圖、不補參數、不改資格／金額公式。
+- **實跑總證據**：`uv lock --check`、`uv sync --locked --all-groups`、`uv pip check`、本輪模組 `py_compile` 與最新完整 pytest **498 passed in 3.81s**；本機固定 20 題已完成兩模式 v3 最終重測，所有 artifacts 由確定性 evaluator 重新計分。
+- **Context7**：以 `/websites/langchain_oss_python` 查證 LangChain 1.x `wrap_model_call` 有限重試、`ModelRequest.override`、動態工具子集與 `tool_choice`；再以鎖定的 LangChain 1.3.14／Ollama connector 實作複核。
+- **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
+- **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
-- **金額口徑**：20 題中 13 題應試算；強化後 F1 為 12／13、12B adapter 11／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
+- **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 針對 F1 S01–S08 與 12B 八題失敗 trace，改善前段資料蒐集／版本追問，不放寬 registry 或 HITL。
-  2. 若要取得新 workflow／新 Gemini 的雲端端到端成績，另行估算 S14 或固定 20 題成本並等待作者明確核准。
-  3. 作者自行 commit／Push 後檢查 GitHub／Hugging Face README 表格與圖片；需要時再建立 `phase-4` tag／Release。
-- **成本**：Gemini 3.5 smoke 使用 61 input、56 output tokens，依標準價推算約 US$0.0001583（實際帳單依方案／免費額度）；低於 US$0.00188 核准上限。既有雲端診斷累計保守授權上限 US$0.99。
+  1. 若要取得新 workflow／新雲端模型的端到端成績，另行估算 S14 或固定 20 題成本並等待作者明確核准。
+  2. 作者自行 commit／Push；再依 `docs/hosting.md` 建立 Space、設定 Secrets 並驗證公開頁面。
+  3. 公開版驗收後，由作者決定是否建立 `phase-4` tag／Release。
+- **成本**：Gemini 3.5 smoke 使用 61 input、56 output tokens，依標準價推算約 US$0.0001583（實際帳單依方案／免費額度）；低於 US$0.00188 核准上限。既有雲端診斷累計保守授權上限 US$0.99；新版 20 題按 8 calls／題重估上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：三個主要模型環境變數與 medium thinking 均已由作者設好；目前沒有必要設定。任何後續雲端 S14／20 題仍需另行核准成本。
-- **待使用者 Git 操作**：作者已建立 UI `bea9238` 與 Agent `e2c01ea`；文件 commit 與 Push 尚待作者執行。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：F1 前段資格／多輪資料保留仍不可靠；12B S06 的改稿被 registry 正確拒絕；Gemini 3.5 目前只驗證單次 connector／tool call，尚未重跑 S14 或固定 20 題；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：作者先前已 Push 到 `b172e99`；本輪有限重試、Space-ready、測試與文件變更尚待作者自行 commit／Push。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：20／20 是小型固定診斷集，不代表統計泛化或可無人監督；雲端新版目前只驗證單次 connector／tool call，尚未重跑 S14 或固定 20 題；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -412,3 +412,43 @@
   - 作者自行建立 `e2c01ea fix(agent): 強化確定性工具流程與模型相容性`；11 個檔案，Agent／架構測試 **30 passed**、相關模組 `py_compile` 通過，Author／Committer 同樣正確。
   - 兩筆 commit 目前只存在本機；尚未執行 `git push`，因此 GitHub 頁面仍顯示遠端舊 commit `eeeae13`，重新整理不會出現本機修改。最後文件 commit 完成後由作者一次 Push。
   - Agent 未執行任何 Git 指令；所有 Git 證據均來自作者貼回的 PowerShell 輸出。
+
+- **2026-07-22（跨輪必要欄位保留與地端最終 20 題）**：
+  - 逐題檢查前一版 F1／12B raw trace，確認主要殘餘問題不是金額公式，而是小模型跨輪遺忘 CMS、把未回答欄位補成 `false`／`COMMUNITY`、跳過資格前置，或 approve 後把 adapter 回帶的舊 interrupt 當成新狀態。
+  - 依 Context7 `/websites/langchain_oss_python` 與鎖定的 LangChain 1.3.14 API，新增 `CaseIntakeMiddleware`：PII 遮蔽後只保存使用者明確說出的必要欄位；`before_model` 更新 thread state，`wrap_model_call` 以明確資料修正工具參數／補資格重檢，`wrap_tool_call` 再守工具順序。未提及值保持未知，不在 middleware 判資格或算金額。
+  - service 每輪先把明確欄位累積進 graph state；已建草稿但尚未 publish 時只顯示固定狀態，不採用模型自行生成的金額；approve 後最終輸出固定等於完整 preview，並忽略 12B adapter 回帶的已處理 interrupt metadata。新增 PLAN D28／D29。
+  - 最終 F1 artifact `artifacts/eval/f1-20-intake-final-v2.json`：追問／工具選擇／工具參數／金額／HITL／端到端均 **20／20**，PII 0；需試算 13 題金額 **13／13**。
+  - 最終 12B artifact `artifacts/eval/gemma3-20-intake-final-v2.json`：追問 20、工具選擇 18、參數 18、金額 19、PII 0、HITL 18、端到端 **18／20**；需試算 13 題金額 **12／13**。S01／S20 因模型未發出第一個資格工具呼叫而保守停止，沒有由 middleware 冒充模型補做。
+  - 最終工程驗證：`uv lock --check` 成功；`intake.py`、`service.py`、`factory.py`、`workflow.py` 的 `py_compile` 通過；完整 pytest **491 passed in 2.86s**。
+  - 評估邊界：20 題是小型固定診斷集，不宣稱統計泛化；雲端新版沒有在本輪呼叫或重跑，既有 7／20 仍只列歷史基線。地端 API 成本 US$0，沒有停止任何既有程序，也沒有修改 `.env`。
+  - Git：Agent 未執行任何 Git 指令。本輪建議 commit：`fix(agent): 強化跨輪資料保留與工具前置條件`；文件可另以 `docs: 同步地端最終診斷結果` 提交。
+
+- **2026-07-22（有限首次工具重試、Space-ready 與 Phase review）**：
+  - 逐題稽核前一版 12B S01／S20，確認失敗點都是模型以散文停住、未選第一個 `eligibility_check`。依 Context7 現行 LangChain 1.x 文件與鎖定版本，`wrap_model_call` 在至少兩個明確資格欄位時最多重試一次；重試改用隔離訊息、只暴露資格工具，不把原始對話或提示注入再次送入模型。
+  - 12B 相容 adapter 只把模型完整 fenced JSON、合法工具名與物件型參數正規化成 tool call；沒有散文意圖推測或 middleware 代填。發布階段另把 adapter 回傳值鎖回 registry 的確定性 `report_id`／Markdown 原文，approve 後輸出仍與預覽逐字一致。新增 PLAN D30。
+  - 更新正式 `ltc-gemma3-tools:12b` 的單工具重試模板並沿用既有模型 layers；測試 alias 完成後已移除，正式 12B 與 `ltc-f1:q4_k_m` 均保留，沒有下載或重轉權重。
+  - 最終 artifacts：`f1-20-intake-final-v3.json` 與 `gemma3-20-intake-final-v3.json` 的追問／工具選擇／參數／金額／HITL／端到端均 **20／20**，PII 洩漏 0；另依 13 個有 `expected_money` 的情境獨立統計，兩者都是 **13／13**。
+  - 依官方 Space 設定與相依套件文件補齊根目錄 README YAML metadata、`requirements.txt` 的 `-e .` 安裝入口與 hosting 說明；`SPACE_ID` 模擬匯入只顯示雲端 provider，沒有啟動 Ollama 或呼叫模型。新增 PLAN D31。
+  - 最終工程證據：`uv lock --check`、`uv sync --locked --all-groups`、本輪模組 `py_compile` 成功，完整 pytest **495 passed in 3.97s**；兩份 v3 artifact 各 20 traces，metrics 與預期逐欄完全一致。公開檔案的疑似 token、私密路徑／作者信箱、禁詞與 50 MiB 大檔掃描均為 0。20 題仍是小型診斷集，雲端新版仍只有 connector smoke，不宣稱統計泛化或同版三模型排名。
+  - 成本與 Git：本輪只跑地端 Ollama，API 成本 US$0；沒有讀取／修改 `.env`，沒有停止其他專案，也沒有執行任何 Git 指令。建議功能 commit：`fix(agent): 加入有限首次工具重試與嚴格 adapter 正規化`；文件可另以 `docs: 同步地端最終評估與 Space 設定` 提交。
+
+- **2026-07-22（公開稽核摘要、乾淨安裝與交付性驗證）**：
+  - 新增 public evaluation exporter；輸入仍是 ignored raw artifacts，但輸出只含逐題布林評分、aggregate、provider／model、scenario set 與 artifact SHA-256。對話、tool args／results、attempts、notes 一律排除；coverage、順序、trace 數或 metrics 不一致會直接拒絕。新增 PLAN D32。
+  - 產生 `eval/results/local-models-v3.json`：兩模式各 20 rows，端到端 20／20、金額題 13／13、PII 0；掃描確認不含測試身分證、電話、姓名、raw conversation 或工具參數。連續重建的檔案 SHA-256 相同，證明 exporter 輸出可重現。
+  - `uv build` 成功建立 sdist／wheel；在 repo 外全新 Python 3.11 venv 安裝 wheel 後，CLI `--offline-demo --approve` 成功。wheel 共 39 files，含 entry points 與 `py.typed`，不含 `.env`、artifacts 或 models。
+  - 乾淨 wheel 安裝曾解析到比 `uv.lock` 更新的 connector；先固定頂層後再比對，仍發現 `certifi`、`google-auth` 兩個 transitive 漂移。因此改由 `uv export --locked --no-dev --no-emit-project` 產生完整 `requirements.lock.txt`，根目錄 `requirements.txt` 先引用 constraints 再 `-e .`。測試會逐字比對 exporter，避免日後更新 lock 忘記同步。另一個全新 venv 依該檔安裝後，版本逐項相符；root `app.py` 在 `SPACE_ID` 模擬下匯入成功且只列雲端 provider，沒有模型呼叫。本機與 Space 模擬 venv 的 `uv pip check` 均為 `All installed packages are compatible`。
+  - 受控 fixture 使用未占用的 17861，桌機／390 px 手機、進階設定、連續兩輪、歷史展開 smoke 均為 `UI_SMOKE_OK`、console 0 error；結束後核對本輪 PID 並釋放連接埠，沒有停止其他程序。
+  - 六支 project skills 在 Windows 設 `PYTHONUTF8=1` 後均由 skill-creator validator 輸出 `Skill is valid!`；未設 UTF-8 時 validator 會被系統 cp950 讀檔阻擋，這是驗證工具的 Windows encoding 限制，不是 skill 內容錯誤。
+  - 最終證據：evaluation 專屬 **17 passed**；`uv lock --check`、新增 exporter `py_compile` 通過，完整 pytest **497 passed in 5.36s**。API 成本 US$0；沒有執行 Git。建議新增 commit：`feat(eval): 發布去識別化固定集評估摘要`；Space pins 與完成度文件可併入文件 commit。
+  - 免費成本準備：最新 workflow 可能包含一次初始重試與最多三次續跑，故不沿用舊版 6 calls 假設；以更保守的 8 calls × 20 題 × 每次 12k input／3k output、input US$0.30／1M、output US$2.50／1M 重跑腳本，得到 160 calls、1.92M input、480k output、上限 **US$1.776**。這只是待核准估算，未送出任何雲端請求。
+  - 公開 CI：查閱 uv 官方 integration guide，新增 Windows workflow；`actions/checkout@v7`、setup-uv v8.1.0 commit SHA、uv 0.11.18、Python 3.11，依序執行 lock check、dev sync、完整 pytest 與 build。workflow 沒有 `secrets.*`、模型或付費 API 步驟；YAML 解析與架構測試通過，新增 PLAN D33。完整 pytest 隨後為 **498 passed in 3.77s**。
+  - 清理：乾淨 wheel／Space 安裝使用的 repo 外暫存環境約 496.5 MiB；完成版本與相依性查證後已核對絕對路徑並刪除。內容只有可由 lock／build 重建的測試 venv 與 distributions，不影響 workspace 或模型。
+
+- **2026-07-22（發布前重跑與作者交接）**：
+  - 依 `resume-context`／`review-phase` 復原並逐項核對完成度，不以先前摘要代替證據。再次執行 `uv lock --check`、`uv sync --locked --all-groups`、public evaluation export、完整 pytest 與 `uv build`；結果為 **498 passed in 5.78s**，sdist／wheel 均成功產生。
+  - `uv pip check` 顯示所有 91 個安裝套件相容；以臨時 `SPACE_ID`／非秘密模型字串模擬託管環境，provider 清單只有 `gemini`，沒有啟動或呼叫 Ollama／雲端模型。
+  - 對 83 個公開候選檔案重跑 token、作者私密路徑／信箱與 50 MiB 大檔掃描：三項命中皆為 0。`.env` 未讀取、未修改、未納入掃描輸出；本輪 API 成本 US$0。
+  - 新增 `docs/release-checklist.md`，把作者本機驗證、分組 commit、Push、GitHub CI、Space Secrets／Variables、公開兩輪 smoke 與可選 tag／Release 串成單一路徑；README 修正一處可能把歷史雲端固定集誤讀為新版已重跑的文字。
+  - 文件變更後再次完整 pytest 為 **498 passed in 3.88s**；UI 專屬 11 passed，Agent／evaluation／架構合計 52 passed。14 份 Markdown 的本機連結全數有效，快速回憶區 18 行，六支 project skills 均輸出 `Skill is valid!`；84 個公開候選檔案的秘密、私密身分與大檔掃描仍全部為 0。
+  - 最後以當前 README／發布文件重建 distribution：完整 pytest **498 passed in 3.81s**，sdist／wheel 成功，14 份 Markdown 連結仍全數有效。
+  - Git：Agent 未執行任何 Git 指令。建議文件 commit：`docs: 補充發布與公開驗收清單`。
