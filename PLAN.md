@@ -65,6 +65,7 @@
 | D35 | 2026-07-23 | Space 的 `requirements.txt` 只安裝鎖定的外部套件，不使用 `-e .`；根目錄 `app.py` 在 runtime 以 `pathlib` 載入 `src/` | 第二次公開建置證明 pipfreeze 發生在 repository 複製到 `/app` 之前，該階段不存在 `pyproject.toml`；入口自舉符合 Space 建置順序且不影響本機 uv package |
 | D36 | 2026-07-23 | 依 Gradio 6.20.0 的 Space extras 將 Pydantic 限制為 `>=2.11.10,<2.12.5`，並以公開 builder 的完整命令驗證 lock | Space 會自動加裝 `gradio[oauth,mcp]`；第三次 Build 證明原 lock 2.13.4 與 MCP extra 衝突，2.12.4 同時符合 LangChain 與 Gradio 範圍 |
 | D37 | 2026-07-23 | 「同時顯示 2022 舊制」只透過內部 comparison directive 啟用附錄，主規則強制維持 `CURRENT_2026_07`；公開報告把資格 status／basis enum 轉為正體中文 | 公開 Space 驗收發現含 `LEGACY_2022` 的 UI 提示會被 intake 誤判成主版本切換，且 raw enum 不適合一般民眾閱讀；工具、trace 與型別仍保留穩定 enum 供稽核 |
+| D38 | 2026-07-23 | 使用者明確輸入的福利身分由 intake 確定性正規化：第一類／長照低收入戶為 `FIRST`、第二類／長照中低收入戶為 `SECOND`、第三類／長照一般戶／一般戶為 `THIRD`，並優先覆蓋模型參數 | 公開 Space 驗收證明模型可能把「一般戶」誤傳為 `FIRST`；福利類別直接影響部分負擔，必須和 CMS、服務費一樣以可逐字核對的使用者資料鎖定 |
 | D32 | 2026-07-22 | raw evaluation traces 維持 ignored；公開摘要只保留逐題確定性評分、aggregate、scenario／artifact SHA-256，不含對話、工具參數／結果、attempts 或 notes | GitHub 上的評估數字需要可查核，但 raw trace 可能包含測試 PII 與模型文字；exporter 會重算 metrics 並在 coverage、順序、trace 數或 aggregate 不一致時拒絕輸出 |
 | D33 | 2026-07-22 | 公開 CI 使用 Windows runner、Python 3.11、與本機相同的 uv 0.11.18；依官方建議將 setup action 固定到 v8.1.0 commit SHA | 專案的首要執行環境是 Windows，CI 應驗證 lock、完整 pytest 與 distribution build；固定 action／uv 版本降低供應鏈漂移，workflow 不使用 Secrets 或模型 API |
 

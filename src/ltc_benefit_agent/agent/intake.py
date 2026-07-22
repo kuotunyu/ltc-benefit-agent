@@ -70,6 +70,11 @@ _PLANNED_SPEND_PATTERN = re.compile(
     r"(?:預計(?:每月)?服務費|這個月預計服務費|服務費|預計服務)"
     r"\s*([\d,]+)\s*元?"
 )
+_WELFARE_CATEGORY_PATTERN = re.compile(
+    r"(?P<second>第二類|(?:長照)?中低收入戶)"
+    r"|(?P<first>第一類|(?:長照)?低收入戶)"
+    r"|(?P<third>第三類|(?:長照)?一般戶)"
+)
 
 _FIELD_EVIDENCE_PATTERNS: dict[str, re.Pattern[str]] = {
     "age": re.compile(r"年齡|\d{1,3}\s*歲"),
@@ -254,13 +259,14 @@ def _explicit_copay_facts(messages: list[BaseMessage]) -> dict[str, Any]:
         text = _message_text(message)
         if match := _CMS_LEVEL_PATTERN.search(text):
             facts["cms_level"] = int(match.group(1))
-        for label, value in (
-            ("第一類", "FIRST"),
-            ("第二類", "SECOND"),
-            ("第三類", "THIRD"),
-        ):
-            if label in text:
-                facts["welfare_category"] = value
+        category_matches = list(_WELFARE_CATEGORY_PATTERN.finditer(text))
+        if category_matches:
+            latest = category_matches[-1]
+            facts["welfare_category"] = {
+                "first": "FIRST",
+                "second": "SECOND",
+                "third": "THIRD",
+            }[latest.lastgroup or "third"]
         caregiver = _explicit_bool(
             text,
             false_patterns=(
