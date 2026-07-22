@@ -6,6 +6,7 @@ import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from typing import Literal, cast
 
 from dotenv import load_dotenv
 
@@ -16,6 +17,9 @@ class AgentProvider(StrEnum):
     GEMMA3_BASELINE = "gemma3_baseline"
 
 
+GeminiThinkingLevel = Literal["minimal", "low", "medium", "high"]
+
+
 @dataclass(frozen=True, slots=True)
 class AgentSettings:
     provider: AgentProvider
@@ -24,6 +28,7 @@ class AgentSettings:
     ollama_baseline_model: str
     ollama_base_url: str
     is_space: bool
+    gemini_thinking_level: GeminiThinkingLevel = "medium"
     ollama_timeout_seconds: float = 60.0
 
     @property
@@ -60,6 +65,10 @@ class AgentSettings:
             ollama_baseline_model=os.getenv("OLLAMA_BASELINE_MODEL", ""),
             ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
             is_space=bool(os.getenv("SPACE_ID")),
+            gemini_thinking_level=cast(
+                GeminiThinkingLevel,
+                os.getenv("GEMINI_THINKING_LEVEL", "medium").strip().lower(),
+            ),
             ollama_timeout_seconds=ollama_timeout_seconds,
         )
         settings.validate()
@@ -83,5 +92,9 @@ class AgentSettings:
             raise ValueError(f"請在 .env 設定 {env_name}")
         if self.provider is not AgentProvider.GEMINI and not self.ollama_base_url.strip():
             raise ValueError("OLLAMA_BASE_URL 不得為空")
+        if self.gemini_thinking_level not in {"minimal", "low", "medium", "high"}:
+            raise ValueError(
+                "GEMINI_THINKING_LEVEL 必須是 minimal、low、medium 或 high"
+            )
         if self.ollama_timeout_seconds <= 0:
             raise ValueError("OLLAMA_TIMEOUT_SECONDS 必須大於 0")

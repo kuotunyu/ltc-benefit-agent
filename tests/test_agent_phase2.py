@@ -6,7 +6,13 @@ from typing import Any, Sequence
 
 import pytest
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.tools import BaseTool
 from pydantic import Field
@@ -175,6 +181,225 @@ class ScriptedQuestionModel(BaseChatModel):
         return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
 
 
+class PrematureStoppingModel(BaseChatModel):
+    """每個工具後都先停住，用來驗證 middleware 能有限度續跑。"""
+
+    seen_system_prompts: list[str] = Field(default_factory=list)
+
+    @property
+    def _llm_type(self) -> str:
+        return "premature-stopping-test-model"
+
+    def bind_tools(
+        self, tools: Sequence[BaseTool | dict[str, Any]], **kwargs: Any
+    ) -> "PrematureStoppingModel":
+        del tools, kwargs
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del stop, run_manager, kwargs
+        system_text = "\n".join(
+            str(message.content)
+            for message in messages
+            if isinstance(message, SystemMessage)
+        )
+        self.seen_system_prompts.append(system_text)
+        last = messages[-1]
+
+        if isinstance(last, HumanMessage):
+            keys = (
+                "age",
+                "indigenous",
+                "has_disability_certificate",
+                "has_dementia_diagnosis",
+                "is_pac_case",
+                "has_functional_impairment",
+                "impairment_duration_months",
+                "residence_status",
+                "official_cms_level",
+                "rule_version",
+            )
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "eligibility_check",
+                        "args": {key: COMPLETE_REPORT_ARGS[key] for key in keys},
+                        "id": "guard-call-1",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage) and "eligibility_check 已完成" in system_text:
+            args = {
+                key: COMPLETE_REPORT_ARGS[key]
+                for key in (
+                    "welfare_category",
+                    "has_foreign_caregiver",
+                    "planned_spend",
+                    "rule_version",
+                )
+            }
+            args["cms_level"] = COMPLETE_REPORT_ARGS["official_cms_level"]
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "copay_estimate",
+                        "args": args,
+                        "id": "guard-call-2",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage) and "copay_estimate 已成功完成" in system_text:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "build_report_draft",
+                        "args": COMPLETE_REPORT_ARGS,
+                        "id": "guard-call-3",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage) and "build_report_draft 已成功完成" in system_text:
+            draft_message = next(
+                message
+                for message in reversed(messages)
+                if isinstance(message, ToolMessage)
+                and message.name == "build_report_draft"
+            )
+            draft = json.loads(str(draft_message.content))
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "publish_report",
+                        "args": {
+                            "report_id": draft["report_id"],
+                            "report_markdown": draft["markdown"],
+                        },
+                        "id": "guard-call-4",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage):
+            message = AIMessage(content=f"已取得 {last.name} 結果，先到這裡。")
+        else:  # pragma: no cover - exposes unexpected middleware transitions
+            raise AssertionError(f"unexpected last message: {last!r}")
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+class InsufficientEligibilityModel(BaseChatModel):
+    """資格工具明確回傳缺漏時，middleware 不應逼模型建稿。"""
+
+    call_count: int = 0
+
+    @property
+    def _llm_type(self) -> str:
+        return "insufficient-eligibility-test-model"
+
+    def bind_tools(
+        self, tools: Sequence[BaseTool | dict[str, Any]], **kwargs: Any
+    ) -> "InsufficientEligibilityModel":
+        del tools, kwargs
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del stop, run_manager, kwargs
+        self.call_count += 1
+        last = messages[-1]
+        if isinstance(last, HumanMessage):
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "eligibility_check",
+                        "args": {
+                            "age": 70,
+                            "indigenous": False,
+                            "has_disability_certificate": False,
+                            "has_dementia_diagnosis": False,
+                            "is_pac_case": False,
+                            "has_functional_impairment": None,
+                            "impairment_duration_months": None,
+                            "residence_status": "COMMUNITY",
+                            "official_cms_level": None,
+                            "rule_version": "CURRENT_2026_07",
+                        },
+                        "id": "missing-call-1",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage):
+            message = AIMessage(content="請問日常生活是否需要他人協助？")
+        else:  # pragma: no cover - middleware 不應在此情境續跑
+            raise AssertionError(f"unexpected extra model call: {last!r}")
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+class UnknownCmsStoppingModel(BaseChatModel):
+    """未知 CMS 完成初篩後停住，middleware 應直接建參考報告。"""
+
+    @property
+    def _llm_type(self) -> str:
+        return "unknown-cms-stopping-test-model"
+
+    def bind_tools(
+        self, tools: Sequence[BaseTool | dict[str, Any]], **kwargs: Any
+    ) -> "UnknownCmsStoppingModel":
+        del tools, kwargs
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del stop, run_manager, kwargs
+        last = messages[-1]
+        if isinstance(last, HumanMessage):
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "eligibility_check",
+                        "args": {
+                            "age": 70,
+                            "indigenous": False,
+                            "has_disability_certificate": False,
+                            "has_dementia_diagnosis": False,
+                            "is_pac_case": False,
+                            "has_functional_impairment": True,
+                            "impairment_duration_months": 8,
+                            "residence_status": "COMMUNITY",
+                            "official_cms_level": None,
+                            "rule_version": "CURRENT_2026_07",
+                        },
+                        "id": "unknown-cms-call-1",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage):
+            message = AIMessage(content=f"已取得 {last.name}，先到這裡。")
+        else:  # pragma: no cover - exposes unexpected middleware transitions
+            raise AssertionError(f"unexpected last message: {last!r}")
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 def settings() -> AgentSettings:
     return AgentSettings(
         provider=AgentProvider.GEMINI,
@@ -221,6 +446,28 @@ def test_unapproved_model_money_is_blocked_but_published_report_is_returned() ->
     assert published.latest_text == report
 
 
+def test_latest_text_reads_langchain_standard_content_blocks() -> None:
+    result = AgentTurnResult(
+        "thread-content-blocks",
+        {
+            "messages": [
+                AIMessage(
+                    content=[
+                        {"type": "reasoning", "reasoning": "internal"},
+                        {
+                            "type": "text",
+                            "text": "收到，請問日常生活需要哪些協助？",
+                        },
+                    ]
+                )
+            ]
+        },
+        (),
+    )
+
+    assert result.latest_text == "收到，請問日常生活需要哪些協助？"
+
+
 def test_full_create_agent_flow_masks_pii_and_waits_for_exact_approval() -> None:
     model = ScriptedBenefitModel()
     audit = SafeAuditLogger()
@@ -264,6 +511,63 @@ def test_full_create_agent_flow_masks_pii_and_waits_for_exact_approval() -> None
     assert "tool_call" in log_text
     assert "tool_result" in log_text
     assert "human_decision" in log_text
+
+
+def test_workflow_guard_continues_three_stalled_stages_until_hitl() -> None:
+    model = PrematureStoppingModel()
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=model)
+    )
+
+    pending = service.send_message("thread-workflow-guard", "完整資料已提供")
+
+    assert pending.awaiting_approval
+    assert pending.pending_report_preview is not None
+    assert "NT$ 11,583" in pending.pending_report_preview
+    assert pending.state["workflow_guard_nudge_count"] == 3
+    prompts = "\n".join(model.seen_system_prompts)
+    assert "eligibility_check 已完成" in prompts
+    tool_messages = [
+        message.name
+        for message in pending.state["messages"]
+        if isinstance(message, ToolMessage)
+    ]
+    assert tool_messages == [
+        "eligibility_check",
+        "copay_estimate",
+        "build_report_draft",
+    ]
+
+
+def test_workflow_guard_builds_reference_report_without_guessing_unknown_cms() -> None:
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=UnknownCmsStoppingModel())
+    )
+
+    pending = service.send_message("thread-unknown-cms-guard", "尚未做 CMS 評估")
+
+    assert pending.awaiting_approval
+    preview = pending.pending_report_preview
+    assert preview is not None
+    assert "CMS 未知：僅提供額度參考" in preview
+    assert "不做個人化試算，也不從描述猜級" in preview
+    assert "| 8 | NT$ 36,180 | NT$ 10,854 |" in preview
+    assert "政府給付" not in preview
+    assert pending.state["workflow_guard_nudge_count"] == 2
+
+
+def test_workflow_guard_does_not_override_missing_information_followup() -> None:
+    model = InsufficientEligibilityModel()
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=model)
+    )
+
+    result = service.send_message("thread-missing-information", "家人 70 歲")
+
+    assert not result.awaiting_approval
+    assert result.latest_text == "請問日常生活是否需要他人協助？"
+    assert result.state["workflow_guard_nudge_count"] == 0
+    assert model.call_count == 2
 
 
 def test_reject_does_not_publish_report() -> None:
@@ -392,6 +696,31 @@ def test_tools_reject_invalid_money_arguments_without_llm_math() -> None:
         "description"
     ]
     assert "false" in eligibility_schema["properties"]["is_pac_case"]["description"]
+    assert not {
+        "age",
+        "indigenous",
+        "has_disability_certificate",
+        "has_dementia_diagnosis",
+        "is_pac_case",
+        "has_functional_impairment",
+        "impairment_duration_months",
+        "residence_status",
+    }.intersection(eligibility_schema.get("required", []))
+    conservative = json.loads(
+        tools["eligibility_check"].invoke(
+            {
+                "age": 70,
+                "indigenous": False,
+                "has_disability_certificate": False,
+                "has_dementia_diagnosis": False,
+                "is_pac_case": False,
+                "residence_status": "COMMUNITY",
+                "official_cms_level": 4,
+            }
+        )
+    )
+    assert conservative["status"] == "CMS_PROVIDED_FOR_ESTIMATE"
+    assert conservative["official_cms_level"] == 4
     schema = tools["copay_estimate"].args_schema.model_json_schema()
     assert "不可省略" in schema["properties"]["has_foreign_caregiver"]["description"]
     assert schema["properties"]["welfare_category"]["enum"] == [
@@ -489,3 +818,49 @@ def test_local_timeout_is_forwarded_to_model_client() -> None:
     )
     model = build_chat_model(settings)
     assert model.sync_client_kwargs == {"timeout": 12.5}
+
+
+def test_gemini_35_omits_sampling_params_and_uses_configured_thinking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+    sentinel = object()
+
+    def fake_init_chat_model(model: str, **kwargs: Any) -> object:
+        captured["model"] = model
+        captured.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(
+        "ltc_benefit_agent.agent.factory.init_chat_model", fake_init_chat_model
+    )
+    cloud = AgentSettings(
+        provider=AgentProvider.GEMINI,
+        gemini_model="cloud-model-from-environment",
+        ollama_f1_model="",
+        ollama_baseline_model="",
+        ollama_base_url="http://127.0.0.1:11434",
+        is_space=False,
+        gemini_thinking_level="medium",
+    )
+
+    assert build_chat_model(cloud) is sentinel
+    assert captured["model"] == "cloud-model-from-environment"
+    assert captured["model_provider"] == "google_genai"
+    assert captured["thinking_level"] == "medium"
+    for deprecated in ("temperature", "top_p", "top_k", "candidate_count"):
+        assert deprecated not in captured
+
+
+def test_gemini_thinking_level_is_validated() -> None:
+    invalid = AgentSettings(
+        provider=AgentProvider.GEMINI,
+        gemini_model="cloud-model",
+        ollama_f1_model="",
+        ollama_baseline_model="",
+        ollama_base_url="http://127.0.0.1:11434",
+        is_space=False,
+        gemini_thinking_level="extreme",  # type: ignore[arg-type]
+    )
+    with pytest.raises(ValueError, match="GEMINI_THINKING_LEVEL"):
+        invalid.validate()

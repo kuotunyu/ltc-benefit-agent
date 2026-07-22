@@ -40,6 +40,16 @@ def test_rule_maps_cover_exact_public_enums() -> None:
         assert list(quota_map) == list(range(2, 9))
 
 
+def test_current_snapshot_records_staged_effective_dates() -> None:
+    snapshot = get_rule_snapshot(RuleVersion.CURRENT_2026_07)
+    notes = " ".join(snapshot.notes)
+    assert snapshot.label.endswith("2026-07-01 完整快照）")
+    assert "2025-09-01" in notes
+    assert "2026-01-01" in notes
+    assert "2026-07-01" in notes
+    assert "不代表所有規則都在該日才生效" in notes
+
+
 def test_rule_maps_are_read_only() -> None:
     with pytest.raises(TypeError):
         RULE_SNAPSHOTS[RuleVersion.LEGACY_2022] = get_rule_snapshot(  # type: ignore[index]
