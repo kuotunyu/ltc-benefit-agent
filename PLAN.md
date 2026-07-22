@@ -57,6 +57,12 @@
 | D25 | 2026-07-22 | `copay_estimate` 成功後由 middleware 複製已驗證的資格／金額 tool args 建稿；`build_report_draft` 成功後複製 registry 回傳的 ID 與原文送進既有 HITL | 3B 實測即使收到續跑提示仍不願呼叫複雜建稿工具；確定性接續不需要重新解析對話或請 LLM 重抄數字，且 publish 仍必須 approve／reject |
 | D26 | 2026-07-22 | F1 Ollama Hermes template 的每個 `<tool_response>` 必須同時包含 `.ToolName` 與 `.Content` | 官方 tokenizer chat template 以工具名配對回傳；舊模板只放內容，實測造成第一個工具後空白，修正後 S11／S14 與固定 20 題能繼續多工具流程 |
 | D27 | 2026-07-22 | 雲端主模型遷移為 stable `gemini-3.5-flash-lite`；不傳 `temperature`／`top_p`／`top_k`，tool-calling 預設 `thinking_level=medium` 且可由環境變數調整 | 官方模型頁確認新型號為 GA 且支援 function calling；遷移文件要求移除 sampling 參數，並建議多步工具任務使用 medium 或 high thinking |
+| D28 | 2026-07-22 | 在 PII 遮蔽後以 intake middleware／thread state 保存可逐字核對的必要欄位；模型未被使用者明確告知的值維持未知，跳過資格前置時只允許用已保存資料重檢資格 | 地端 trace 顯示小模型會跨輪遺忘 CMS 或自行補入 `false`／`COMMUNITY`，造成工具參數漂移與提前建稿；此層只驗證資料來源與工具順序，不判資格、不算金額 |
+| D29 | 2026-07-22 | 人工 approve 後以已展示 preview 作唯一最終輸出，並忽略 provider adapter 回帶的歷史 interrupt metadata | 12B 相容 adapter 會在核准後附回已處理的 interrupt；若再次當成待處理狀態，會讓提示文字覆蓋已核准報告 |
+| D30 | 2026-07-22 | 至少兩個明確資格欄位下若模型漏掉第一個資格工具，只允許一次隔離原始對話、僅暴露 `eligibility_check` 的結構化重試；相容 adapter 只正規化模型明確輸出的單一合法 fenced JSON tool call | S01／S20 trace 顯示 12B 會以散文停止；有限重試可讓模型重新選工具，又不從散文猜意圖、不補參數、不由 middleware 冒充模型完成初始工具選擇 |
+| D31 | 2026-07-22 | Space-ready 交付使用根目錄 README YAML metadata、`app.py` 與 `requirements.txt`；完整 runtime constraints 由 `uv.lock` 匯出為 `requirements.lock.txt`，最後以 `-e .` 安裝專案 | 託管 runtime 以 pip 解析，僅固定頂層套件仍會讓 transitive dependency 漂移；完整匯出讓 Space 與本輪 lock 逐項同版，Space 偵測後只開雲端 provider |
+| D32 | 2026-07-22 | raw evaluation traces 維持 ignored；公開摘要只保留逐題確定性評分、aggregate、scenario／artifact SHA-256，不含對話、工具參數／結果、attempts 或 notes | GitHub 上的評估數字需要可查核，但 raw trace 可能包含測試 PII 與模型文字；exporter 會重算 metrics 並在 coverage、順序、trace 數或 aggregate 不一致時拒絕輸出 |
+| D33 | 2026-07-22 | 公開 CI 使用 Windows runner、Python 3.11、與本機相同的 uv 0.11.18；依官方建議將 setup action 固定到 v8.1.0 commit SHA | 專案的首要執行環境是 Windows，CI 應驗證 lock、完整 pytest 與 distribution build；固定 action／uv 版本降低供應鏈漂移，workflow 不使用 Secrets 或模型 API |
 
 ## 公開介面與計算契約
 
