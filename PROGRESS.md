@@ -2,16 +2,16 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 1–4 工程與三模式固定 20 題均完成；作者已完成七筆本機 commits、尚未 Push。公開前人工規則校對 5／5，最後 release review 已通過，待作者建立 audit commit 並自行 Push。
+- **現在做到哪**：Phase 1–4 工程、三模式固定 20 題、人工規則校對 5／5 與 release review 均完成；作者已將 `main` 首次 Push 至公開 GitHub repo，公開頁面、README、MIT License 與 8 筆 commits 均可讀取。
 - **實跑總證據**：人工簽核 5／5；`uv lock --check`、locked sync、compileall 通過；最新 pytest **479 passed in 3.12s**。六支 project skills、離線 CLI、公開文案、秘密與大檔掃描均通過。
 - **Context7**：全域 MCP 已啟用 OAuth；已用 `/websites/langchain_oss` 查證 `create_agent`／HITL、PII、`init_chat_model`。新增 `verify-external-api` project skill，驗證通過。
 - **本機 20 題**：12B adapter 為追問 12、選工具 5、參數 17、金額 19、PII 0、HITL 4、端到端 3；F1 為 18、0、12、14、0、0、0。
 - **雲端 20 題**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法報告發布被 registry 擋下並誠實計為失敗。
 - **金額口徑**：20 題中 13 題應試算、7 題不得試算；真正金額一致為雲端 12／13、F1 7／13、12B adapter 12／13，README 已避免把 19／20 誤讀為算了 20 題。
 - **下一步**：
-  1. 作者為最後的規則稽核修正建立小型 Conventional Commit。
-  2. 作者自行設定 GitHub remote 並 Push `main`；Push 後檢查 Contributors 只顯示 `kuotunyu`。
-  3. 作者需要時自行建立 `phase-4` tag；Agent 不執行 Git。
+  1. 作者將本次「首次公開上線」進度同步建立一筆文件 commit 並再次 Push。
+  2. GitHub Contributors 快取更新後，確認只顯示 `kuotunyu`；公開 commit 歷史目前 8／8 均已顯示 `kuotunyu`。
+  3. 作者需要時自行建立 `phase-4` tag，或另行準備 Hugging Face Space；Agent 不執行 Git／帳號操作。
 - **成本**：兩次 S14 保守上限合計 US$0.09；本次 20 題批次核准上限 US$0.90、實際帳單未知且尚未跑完，累計保守授權上限 US$0.99。
 - **待使用者 Git 操作**：Agent 未執行任何 Git 指令；小功能 commit 與 Phase tag 仍由作者自行處理。
 - **⚠️ 已知坑**：雲端專案有 15 requests/minute 限制，診斷固定共用 12/min limiter；3B 不可靠地進入建稿／HITL。合併 artifact 保留四段 partial run 的中止原因；`.env` 真值從未印出、覆寫或提交。
@@ -270,3 +270,9 @@
   - 修正 PowerShell release scan 的 `$Matches` 覆寫與 CLI 編碼檢查後重新執行；最終結果為疑似秘密 0、私密絕對路徑 0、個人 email 0、公開禁詞 0、未忽略 50 MB 大檔 0，`.env` 排除規則 1，`.env.example` 非空秘密欄位 0。
   - README／PLAN／PROGRESS 同步完成後再次執行 lock check、compileall 與全套測試，最終 **479 passed in 3.12s**；快速回憶區 15 行，未超過 30 行限制。
   - 結論：release review 通過；API／模型成本 US$0。Agent 未執行 Git，待作者建立最後 audit commit 並自行 Push。
+
+- **2026-07-22（GitHub 首次公開上線）**：
+  - 作者建立 commit `0727695`，訊息 `fix(rules): 補充外籍看護限制與分階段施行說明`；Author 與 Committer 均為 `kuotunyu` 的 GitHub noreply email。
+  - 作者設定 `origin` 為公開 repo，執行 `git push -u origin main` 成功；148 個 objects、267.26 KiB 完成上傳，`main` 已追蹤 `origin/main`。驗證由 Windows 已保存的 GitHub credential 自動完成，沒有要求重新輸入帳密。
+  - 公開頁面實查可讀取 `main`、README、MIT License、完整檔案列表與 8 筆 commits；公開 commit 歷史 8／8 均顯示 `kuotunyu`，沒有 `tun0000` 或其他共同作者。Contributors 區塊可能仍受 GitHub 快取延遲影響。
+  - Agent 未執行 Git；本次只同步 PROGRESS，待作者自行建立文件 commit 並 Push。API／模型成本 US$0。
