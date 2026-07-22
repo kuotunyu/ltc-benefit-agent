@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢查 Phase Gate"
+  short_description: "Verify phase DoD, documentation, safety, and handoff evidence"
+  default_prompt: "Use $review-phase to verify the current phase before requesting approval."

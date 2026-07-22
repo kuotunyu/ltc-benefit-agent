@@ -1,0 +1,4 @@
+interface:
+  display_name: "執行診斷評估"
+  short_description: "安全重跑固定二十題診斷集並彙整可稽核的模型評估指標"
+  default_prompt: "Use $run-diagnostic-eval to rerun one safe local scenario and summarize the trace evidence."

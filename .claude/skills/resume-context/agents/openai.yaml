@@ -1,0 +1,4 @@
+interface:
+  display_name: "恢復專案脈絡"
+  short_description: "Restore project phase, evidence, risks, and safe next action"
+  default_prompt: "Use $resume-context to restore the current ltc-benefit-agent project context."
