@@ -74,7 +74,7 @@ Push 後檢查：
 - Variable：`GEMINI_MODEL=gemini-3.5-flash-lite`。
 - Variable：`GEMINI_THINKING_LEVEL=medium`；未填時程式也會使用 medium。
 
-不要把金鑰寫進 README、一般 Variable、commit 或討論串。Space 會透過 `requirements.txt` 讀取由 `uv.lock` 匯出的完整版本，再以 editable install 安裝本專案；本檔不可引用相鄰 requirements 檔，因為 Space 建置器會將它單獨複製到暫存目錄。
+不要把金鑰寫進 README、一般 Variable、commit 或討論串。Space 會先透過 `requirements.txt` 安裝由 `uv.lock` 匯出的完整外部套件版本，之後才把 repository 複製到 `/app`；根目錄 `app.py` 會在啟動時載入 `src/`。因此 requirements 不可引用相鄰檔案，也不可使用 `-e .`。
 
 ## 5. Space 公開頁面驗收
 

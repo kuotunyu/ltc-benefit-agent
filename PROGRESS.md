@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub 與公開 Space 已同步至 `95654f8`。Space 首次 Build 證明入口相依檔被單獨複製到 `/tmp`，因此引用相鄰 lock 檔失敗；單檔修正已在本機驗證，待作者 Push 重建。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub 與公開 Space 已同步至 `879f3d5`。Space 第二次 Build 證明 requirements 安裝早於 repository 複製，故 `-e .` 找不到 `pyproject.toml`；runtime `src/` 自舉修正已在本機驗證，待作者 Push 重建。
 - **本次完成**：12B 漏掉首次資格工具時新增最多一次的隔離結構化重試；只暴露 `eligibility_check` 與遮蔽後明確欄位，僅正規化模型明確輸出的合法 JSON tool call，不猜意圖、不補參數、不改資格／金額公式。
-- **實跑總證據**：相依單檔修正後 `uv lock --check`、UI **11 passed**、完整 pytest **498 passed in 3.59s**、`uv build` 與 `uv pip install --dry-run -r requirements.txt` 成功；本機固定 20 題已完成兩模式 v3 最終重測，所有 artifacts 由確定性 evaluator 重新計分。
+- **實跑總證據**：runtime 自舉修正後 `uv lock --check`、UI **11 passed**、完整 pytest **498 passed in 3.10s**、`uv build`、root app `py_compile` 與 86 packages requirements dry-run 成功；本機固定 20 題已完成兩模式 v3 最終重測。
 - **Context7**：以 `/websites/langchain_oss_python` 查證 LangChain 1.x `wrap_model_call` 有限重試、`ModelRequest.override`、動態工具子集與 `tool_choice`；再以鎖定的 LangChain 1.3.14／Ollama connector 實作複核。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者自行 commit 相依單檔修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
+  1. 作者自行 commit Space runtime 自舉修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
   2. 確認 Space Build 轉為 Running，再完成 unknown CMS、已知 CMS、HITL 與手機寬度公開 smoke。
   3. 若要取得新 workflow／新雲端模型的固定 20 題成績，另行核准 US$1.776 上限；公開版驗收後再決定 `phase-4` tag／Release。
 - **成本**：Gemini 3.5 smoke 使用 61 input、56 output tokens，依標準價推算約 US$0.0001583（實際帳單依方案／免費額度）；低於 US$0.00188 核准上限。既有雲端診斷累計保守授權上限 US$0.99；新版 20 題按 8 calls／題重估上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：`origin`／`space` 目前都是 `95654f8`；相依修正、測試、文件與進度待作者自行 commit，之後依序 Push 到兩個 remote。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：Space builder 會把 `requirements.txt` 單獨放到 `/tmp`，不可用相對路徑 include repo 內另一份 requirements；20／20 是小型固定診斷集，不代表統計泛化或可無人監督；雲端新版尚未重跑固定 20 題；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：`origin`／`space` 目前都是 `879f3d5`；runtime 自舉修正、測試、文件與進度待作者自行 commit，之後依序 Push 到兩個 remote。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：Space builder 先在 `/tmp` 安裝 requirements、再把 repo 複製到 `/app`，因此入口檔不可 include 相鄰檔案或使用 `-e .`；20／20 是小型固定診斷集，不代表統計泛化；雲端新版尚未重跑固定 20 題；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -466,3 +466,9 @@
   - 修正為把 `uv export` 的完整 runtime pins 直接內嵌於根目錄 `requirements.txt`，最後保留 `-e .`；刪除重複的 `requirements.lock.txt`。UI 架構測試改為逐字比對內嵌 pins 與即時 `uv export`，PLAN 新增 D34，hosting／release checklist 同步記錄 Space 的單檔複製限制。
   - 實跑證據：`uv lock --check` 成功、UI **11 passed in 2.47s**、完整 pytest **498 passed in 3.59s**、sdist／wheel build 成功；`uv pip install --dry-run -r requirements.txt` 檢查 87 個 packages 並顯示 `Would make no changes`。
   - 成本與 Git：本輪未呼叫模型 API，成本 US$0；未讀取或修改 `.env`，Agent 未執行任何 Git 指令。待作者自行提交並 Push `origin`／`space` 後，以公開 Build log 作最終部署證據。建議 commit：`fix(space): 內嵌鎖定相依以修正建置路徑`。
+
+- **2026-07-23（Space 第二次 Build 診斷與 runtime 自舉）**：
+  - 作者自行將相依單檔修正 commit `879f3d5` Push 至 GitHub 與 Hugging Face Space。第二次公開 Build 已能完整讀取內嵌 pins，但在同一個 pipfreeze 階段解析 `-e .` 時回報 `/app` 尚無 `setup.py` 或 `pyproject.toml`。
+  - Build log 證明實際順序為：先把 `requirements.txt` mount 到 `/tmp` 並安裝，之後才 `COPY --link ./ /app`。因此 requirements 改為只包含 `uv.lock` 匯出的外部套件；根目錄 `app.py` 在 runtime 以 `Path(__file__).resolve().parent / "src"` 加入 module path，再載入正式 UI。新增 PLAN D35，hosting／release checklist 與架構測試同步鎖住此順序。
+  - 實跑證據：`uv lock --check` 成功、UI **11 passed in 2.31s**、完整 pytest **498 passed in 3.10s**、sdist／wheel build 與 `app.py` 的 `py_compile` 成功；`uv pip install --dry-run -r requirements.txt` 檢查 86 packages 並顯示 `Would make no changes`。
+  - 成本與 Git：本輪未呼叫模型 API，成本 US$0；未讀取或修改 `.env`，Agent 未執行任何 Git 指令。待作者自行提交並依序 Push `origin`／`space`。建議 commit：`fix(space): 改由 runtime 載入 src package`。
