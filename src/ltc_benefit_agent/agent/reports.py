@@ -14,8 +14,10 @@ from ltc_benefit_agent.tools.copay import (
     get_quota_reference_table,
 )
 from ltc_benefit_agent.tools.eligibility import (
+    EligibilityBasis,
     EligibilityInput,
     EligibilityResult,
+    EligibilityStatus,
     assess_eligibility,
 )
 from ltc_benefit_agent.tools.faq_search import FaqSearchResult
@@ -63,13 +65,29 @@ def _money(value: int) -> str:
     return f"NT$ {value:,}"
 
 
+_STATUS_LABELS = {
+    EligibilityStatus.INSUFFICIENT_INFORMATION: "資訊不足",
+    EligibilityStatus.POTENTIALLY_ELIGIBLE_TO_APPLY: "可能符合申請條件",
+    EligibilityStatus.PRELIMINARY_CRITERIA_NOT_MET: "初步未符合規則",
+    EligibilityStatus.CMS_PROVIDED_FOR_ESTIMATE: "已提供正式 CMS，可進行參考試算",
+}
+
+_BASIS_LABELS = {
+    EligibilityBasis.AGE_65_OR_OVER: "65 歲以上老人",
+    EligibilityBasis.INDIGENOUS_AGE_55_OR_OVER: "55 歲以上原住民",
+    EligibilityBasis.DISABILITY_CERTIFICATE: "領有身心障礙證明",
+    EligibilityBasis.DEMENTIA: "確診失智者",
+    EligibilityBasis.PAC_CASE: "PAC（急性後期照護）個案",
+}
+
+
 def _eligibility_section(result: EligibilityResult) -> list[str]:
-    bases = "、".join(basis.value for basis in result.qualifying_bases) or "無"
+    bases = "、".join(_BASIS_LABELS[basis] for basis in result.qualifying_bases) or "無"
     reasons = "；".join(result.reasons)
     return [
         "## 資格初篩",
         "",
-        f"- 結論：`{result.status.value}`",
+        f"- 結論：{_STATUS_LABELS[result.status]}",
         f"- 符合身分依據：{bases}",
         f"- 說明：{reasons}",
     ]
@@ -188,7 +206,7 @@ def render_report(
                 "",
                 "## 舊制比較",
                 "",
-                f"- `LEGACY_2022` 初篩：`{legacy.status.value}`",
+                f"- `LEGACY_2022` 初篩：{_STATUS_LABELS[legacy.status]}",
                 "- 舊制比較僅供理解規則差異，不代表可追溯申請。",
             ]
         )

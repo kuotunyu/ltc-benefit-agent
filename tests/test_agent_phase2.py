@@ -19,6 +19,7 @@ from pydantic import Field
 
 from ltc_benefit_agent.agent.config import AgentProvider, AgentSettings
 from ltc_benefit_agent.agent.factory import build_agent_runtime, build_chat_model
+from ltc_benefit_agent.agent.intake import merge_explicit_case_facts
 from ltc_benefit_agent.agent.privacy import SafeAuditLogger, redact_text
 from ltc_benefit_agent.agent.reports import (
     ReportPublicationRejected,
@@ -27,6 +28,10 @@ from ltc_benefit_agent.agent.reports import (
 )
 from ltc_benefit_agent.agent.service import AgentTurnResult, BenefitAgentService
 from ltc_benefit_agent.agent.toolset import build_tool_bundle
+from ltc_benefit_agent.agent.workflow import (
+    CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE,
+    _explicit_compare_legacy,
+)
 from ltc_benefit_agent.tools.copay import WelfareCategory
 from ltc_benefit_agent.tools.eligibility import EligibilityInput, ResidenceStatus
 from ltc_benefit_agent.tools.rules import RuleVersion
@@ -810,7 +815,8 @@ def test_intake_guard_reprompts_model_once_for_missing_initial_tool_call() -> No
     assert eligibility_calls[0].payload["impairment_duration_months"] == 8
     assert result.awaiting_approval
     assert result.pending_report_preview is not None
-    assert "PRELIMINARY_CRITERIA_NOT_MET" in result.pending_report_preview
+    assert "結論：初步未符合規則" in result.pending_report_preview
+    assert "PRELIMINARY_CRITERIA_NOT_MET" not in result.pending_report_preview
 
 
 def test_intake_guard_does_not_force_initial_tool_for_single_fact() -> None:
@@ -1010,7 +1016,45 @@ def test_current_report_can_explicitly_compare_legacy_snapshot() -> None:
     assert "不代表所有規則都在該日才生效" in report
     assert "生效基準：" not in report
     assert "## 舊制比較" in report
-    assert "`LEGACY_2022` 初篩：`PRELIMINARY_CRITERIA_NOT_MET`" in report
+    assert "`LEGACY_2022` 初篩：初步未符合規則" in report
+
+
+def test_interface_comparison_keeps_current_as_primary_rule() -> None:
+    text = (
+        "家人 70 歲，已有正式 CMS 第 4 級。\n\n"
+        f"{CURRENT_WITH_HISTORICAL_COMPARISON_DIRECTIVE}"
+    )
+
+    eligibility, copay = merge_explicit_case_facts(text)
+
+    assert eligibility["rule_version"] == "CURRENT_2026_07"
+    assert copay["rule_version"] == "CURRENT_2026_07"
+    assert _explicit_compare_legacy([HumanMessage(content=text)])
+
+
+def test_report_uses_human_readable_eligibility_labels() -> None:
+    report = render_report(
+        eligibility_input=EligibilityInput(
+            age=70,
+            indigenous=False,
+            has_disability_certificate=False,
+            has_dementia_diagnosis=False,
+            is_pac_case=False,
+            has_functional_impairment=True,
+            impairment_duration_months=8,
+            residence_status=ResidenceStatus.COMMUNITY,
+            official_cms_level=4,
+            rule_version=RuleVersion.CURRENT_2026_07,
+        ),
+        welfare_category=WelfareCategory.THIRD,
+        has_foreign_caregiver=False,
+        planned_spend=18_000,
+    )
+
+    assert "結論：已提供正式 CMS，可進行參考試算" in report
+    assert "符合身分依據：65 歲以上老人" in report
+    assert "CMS_PROVIDED_FOR_ESTIMATE" not in report
+    assert "AGE_65_OR_OVER" not in report
 
 
 def test_tools_reject_invalid_money_arguments_without_llm_math() -> None:

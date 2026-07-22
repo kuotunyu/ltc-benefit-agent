@@ -1,23 +1,23 @@
 # PROGRESS — ltc-benefit-agent 進度日誌
 
-## 🧭 快速回憶區（上次收工：2026-07-22）
+## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub 與公開 Space 已同步至 `211de11`。Space 第三次 Build 進入 resolver 後發現 Gradio MCP extra 與 Pydantic 2.13.4 衝突；相容 lock 與完整 Space 命令驗證已完成，待作者 Push 重建。
-- **本次完成**：12B 漏掉首次資格工具時新增最多一次的隔離結構化重試；只暴露 `eligibility_check` 與遮蔽後明確欄位，僅正規化模型明確輸出的合法 JSON tool call，不猜意圖、不補參數、不改資格／金額公式。
-- **實跑總證據**：Space extras 相容 lock 後 `uv pip check` 為 91 packages compatible、核心 **46 passed**、完整 pytest **498 passed in 3.16s**、`uv build` 成功；Python 3.11 原生 pip 以 builder 完整命令 dry-run 成功，Gemini connector 無網路建構成功。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub／公開 Space 已同步至 `7e06a7c`，Space 為 `RUNNING`／CPU Basic，公開首頁 HTTP 200。作者手動雲端對話已走到報告草稿，發現舊制比較誤切主版本與 raw enum 顯示問題；本機修正已完成，待完整回歸與重新部署驗收。
+- **本次完成**：Space 第四次 Build 通過 Gradio MCP／Pydantic resolver；比較選項改用不含 `LEGACY_2022`／2022／舊制字樣的內部 directive，主版本維持 `CURRENT_2026_07`；公開報告的資格狀態與身分依據改為正體中文。
+- **實跑總證據**：Hugging Face API 回報 commit `7e06a7c`、stage `RUNNING`、hardware `cpu-basic`；公開端點 HTTP 200。版本／報告修正的 Agent＋UI 專屬 **38 passed in 2.74s**；`uv lock --check`、完整 pytest **500 passed in 3.10s**、sdist／wheel build 均成功。
 - **Context7**：以 `/websites/langchain_oss_python` 查證 LangChain 1.x `wrap_model_call` 有限重試、`ModelRequest.override`、動態工具子集與 `tool_choice`；再以鎖定的 LangChain 1.3.14／Ollama connector 實作複核。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者自行 commit Space extras 相容 lock，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
-  2. 確認 Space Build 轉為 Running，再完成 unknown CMS、已知 CMS、HITL 與手機寬度公開 smoke。
-  3. 若要取得新 workflow／新雲端模型的固定 20 題成績，另行核准 US$1.776 上限；公開版驗收後再決定 `phase-4` tag／Release。
-- **成本**：Gemini 3.5 smoke 使用 61 input、56 output tokens，依標準價推算約 US$0.0001583（實際帳單依方案／免費額度）；低於 US$0.00188 核准上限。既有雲端診斷累計保守授權上限 US$0.99；新版 20 題按 8 calls／題重估上限 US$1.776，尚未核准或執行。
+  1. 作者提交本輪公開驗收修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
+  2. 清除舊 Space session，以勾選舊制比較的已知 CMS 情境重跑；主報告必須為 `CURRENT_2026_07`，另列 `LEGACY_2022` 比較，核准後最終文字須與預覽一致。
+  3. 再完成 unknown CMS 與手機寬度公開 smoke；若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限，最後才決定 `phase-4` tag／Release。
+- **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：`origin`／`space` 目前都是 `211de11`；`pyproject.toml`、`uv.lock`、重匯出的 requirements、測試與文件待作者自行 commit，之後依序 Push 到兩個 remote。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：Space builder 自動加入 Gradio MCP extra，必須同時驗證 extras 而非只測專案 requirements；相容 Pydantic 使 `google-genai` 降至 2.8.0，部署後真實 API smoke 仍須另行成本核准；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：`origin`／`space` 目前都是 `7e06a7c`；本輪 version intent／report label 修正與文件待測試通過後由作者自行 commit，再依序 Push 兩個 remote。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：比較用的文字若含 `LEGACY_2022`、2022 或「舊制」，intake 會合理視為切換版本，因此 UI 必須使用專用 directive；Space builder 仍須連同 Gradio MCP extras 驗證；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -479,3 +479,11 @@
   - 以 builder 顯示的完整參數執行 Python 3.11 原生 pip dry-run：`requirements.txt`、`gradio[oauth,mcp]==6.20.0`、`uvicorn>=0.14.0`、`websockets>=10.4`、`spaces` 全部成功解析；uv dry-run 亦成功。使用 dummy key 僅建構 LangChain connector，輸出 `ChatGoogleGenerativeAI gemini-3.5-flash-lite medium`，沒有送出網路模型請求。
   - 實跑證據：`uv sync --locked --all-groups` 成功、`uv pip check` 為 91 packages compatible、Agent／UI／架構 **46 passed in 2.79s**、完整 pytest **498 passed in 3.16s**、sdist／wheel build 成功。真實 Gemini smoke 尚未執行，需待 Space Running 後另列上限取得核准。
   - 成本與 Git：本輪模型 API 成本 US$0；未讀取或修改 `.env`，Agent 未執行任何 Git 指令。待作者自行 commit 並依序 Push `origin`／`space`。建議 commit：`fix(space): 對齊 Gradio MCP 的 Pydantic 相依`。
+
+- **2026-07-23（公開 Space Running 與版本比較驗收修正）**：
+  - 作者自行建立 `7e06a7c fix(space): 對齊 Gradio MCP 的 Pydantic 相依`，依序 Push GitHub 與 Hugging Face Space。Hugging Face API 回報相同 commit、`RUNNING`、CPU Basic；公開首頁 HTTP 200，第四次 Build 已通過。
+  - 作者在公開 UI 手動輸入已知 CMS 4、一般戶、無外籍看護、預計 18,000 元情境；系統成功完成多輪追問、資格工具、金額工具與確定性草稿。畫面金額為原始／調整額度 18,580 元、政府給付 15,120 元、額度內部分負擔 2,880 元、超額 0 元，與整數公式一致。
+  - 公開草稿同時揭露兩個驗收缺陷：勾選「同時顯示 2022 舊制」後，UI 附加訊息中的 `LEGACY_2022` 被 intake 當成主版本，導致主報告誤用舊制；資格結論與身分依據直接顯示英文 enum。作者尚未按核准，因此未把有誤版本發布為最終報告。
+  - 修正以 `INTERFACE_COMPARE_HISTORICAL_SNAPSHOT=true; PRIMARY_RULE=CURRENT_2026_07` 專用 directive 表達比較意圖；workflow 仍建立 legacy 附錄，但 intake 主版本只看到現制。renderer 另把四種資格狀態與五種身分依據轉為正體中文，工具／trace enum 不變。新增 PLAN D37。
+  - 實跑證據：新增 UI directive、intake version intent、workflow comparison 與 report label 回歸斷言；Agent＋UI 專屬 **38 passed in 2.74s**。隨後 `uv lock --check`、完整 pytest **500 passed in 3.10s**，sdist／wheel build 均成功。
+  - 成本與 Git：作者手動 Space 對話會使用 Gemini，但本輪沒有 usage metadata，實際費用以帳單為準；Agent 未另發模型請求、未讀取 `.env`、未執行 Git。測試完成後建議 commit：`fix(report): 修正舊制比較版本與資格中文顯示`。
