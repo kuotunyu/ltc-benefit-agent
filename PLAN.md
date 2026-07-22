@@ -63,6 +63,7 @@
 | D31 | 2026-07-22 | Space-ready 交付使用根目錄 README YAML metadata、`app.py` 與 `requirements.txt`；完整 runtime constraints 由 `uv.lock` 匯出為 `requirements.lock.txt`，最後以 `-e .` 安裝專案 | 託管 runtime 以 pip 解析，僅固定頂層套件仍會讓 transitive dependency 漂移；完整匯出讓 Space 與本輪 lock 逐項同版，Space 偵測後只開雲端 provider |
 | D34 | 2026-07-22 | Space 的完整 runtime constraints 改為直接內嵌於 `requirements.txt`，不再引用相鄰的 `requirements.lock.txt` | 首次公開建置證明 Space builder 只將入口檔複製到 `/tmp`；整合成單檔可保留逐項 pin、避免 include 路徑失效，測試仍逐字比對 `uv export` |
 | D35 | 2026-07-23 | Space 的 `requirements.txt` 只安裝鎖定的外部套件，不使用 `-e .`；根目錄 `app.py` 在 runtime 以 `pathlib` 載入 `src/` | 第二次公開建置證明 pipfreeze 發生在 repository 複製到 `/app` 之前，該階段不存在 `pyproject.toml`；入口自舉符合 Space 建置順序且不影響本機 uv package |
+| D36 | 2026-07-23 | 依 Gradio 6.20.0 的 Space extras 將 Pydantic 限制為 `>=2.11.10,<2.12.5`，並以公開 builder 的完整命令驗證 lock | Space 會自動加裝 `gradio[oauth,mcp]`；第三次 Build 證明原 lock 2.13.4 與 MCP extra 衝突，2.12.4 同時符合 LangChain 與 Gradio 範圍 |
 | D32 | 2026-07-22 | raw evaluation traces 維持 ignored；公開摘要只保留逐題確定性評分、aggregate、scenario／artifact SHA-256，不含對話、工具參數／結果、attempts 或 notes | GitHub 上的評估數字需要可查核，但 raw trace 可能包含測試 PII 與模型文字；exporter 會重算 metrics 並在 coverage、順序、trace 數或 aggregate 不一致時拒絕輸出 |
 | D33 | 2026-07-22 | 公開 CI 使用 Windows runner、Python 3.11、與本機相同的 uv 0.11.18；依官方建議將 setup action 固定到 v8.1.0 commit SHA | 專案的首要執行環境是 Windows，CI 應驗證 lock、完整 pytest 與 distribution build；固定 action／uv 版本降低供應鏈漂移，workflow 不使用 Secrets 或模型 API |
 

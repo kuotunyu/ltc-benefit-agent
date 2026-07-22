@@ -76,6 +76,8 @@ Push 後檢查：
 
 不要把金鑰寫進 README、一般 Variable、commit 或討論串。Space 會先透過 `requirements.txt` 安裝由 `uv.lock` 匯出的完整外部套件版本，之後才把 repository 複製到 `/app`；根目錄 `app.py` 會在啟動時載入 `src/`。因此 requirements 不可引用相鄰檔案，也不可使用 `-e .`。
 
+Space 另會自動加入 `gradio[oauth,mcp]`、`uvicorn`、`websockets` 與 `spaces`。本專案已依 Gradio 6.20.0 MCP extra 把 Pydantic 限制在 `<2.12.5`；若調整 SDK 版本，發布前必須重新執行 extras resolver 模擬並確認公開 Build。
+
 ## 5. Space 公開頁面驗收
 
 Build 完成後，以無痕視窗實際走一次：

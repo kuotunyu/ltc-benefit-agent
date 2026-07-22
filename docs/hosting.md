@@ -14,6 +14,7 @@
 - Variable：`GEMINI_MODEL`（模型字串由環境設定）。
 - Variable：`GEMINI_THINKING_LEVEL=medium`（可省略，程式預設 medium）。
 - Space runtime 依根目錄 `requirements.txt` 安裝外部套件：檔案直接內嵌由 `uv.lock` 匯出的完整 constraints，不引用相鄰檔案，也不在這個階段安裝本專案。Space builder 會先執行此步驟，之後才把 repository 複製到 `/app`；根目錄 `app.py` 啟動時再以 `pathlib` 將 `src/` 加入 module path。這同時避免建置順序造成 include／editable install 失敗，也避免 transitive dependency 漂移；本機仍直接使用 `uv.lock`。
+- Space 會額外安裝 `gradio[oauth,mcp]`。[Gradio 6.20.0 package metadata](https://pypi.org/pypi/gradio/6.20.0/json) 的 MCP extra 限制 Pydantic 2.11.10–2.12.x，而公開 builder 的 resolver 實際拒絕 2.12.5，因此專案把 Pydantic 明確限制為 `>=2.11.10,<2.12.5`，目前 lock 為 2.12.4。此限制會讓 `google-genai` 鎖在 2.8.0；本機已確認 LangChain connector 仍接受 `gemini-3.5-flash-lite` 與 medium thinking，但公開部署後仍須另做經核准的真實 API smoke。更新 Gradio SDK 或 lock 時，必須以 Build log 中的完整 Space 安裝命令重新驗證 extras。
 
 更新 `uv.lock` 後必須同步重建 Space constraints；測試會逐字比對 exporter 輸出，漏做時直接失敗：
 
