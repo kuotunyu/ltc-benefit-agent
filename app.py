@@ -1,5 +1,13 @@
 """託管平台進入點；不會自行啟動地端模型服務。"""
 
+from pathlib import Path
+import sys
+
+
+SOURCE_ROOT = Path(__file__).resolve().parent / "src"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
 from ltc_benefit_agent.ui.app import CSS, build_demo, configured_port, ensure_port_available
 
 

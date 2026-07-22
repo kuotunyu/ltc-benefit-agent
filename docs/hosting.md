@@ -13,14 +13,13 @@
 - Secret：`GEMINI_API_KEY` 或 connector 支援的 `GOOGLE_API_KEY`，二選一即可；不要同時填入 README 或一般 Variable。
 - Variable：`GEMINI_MODEL`（模型字串由環境設定）。
 - Variable：`GEMINI_THINKING_LEVEL=medium`（可省略，程式預設 medium）。
-- Space runtime 依根目錄 `requirements.txt` 安裝本專案：檔案直接內嵌由 `uv.lock` 匯出的完整 constraints，最後以 `-e .` 安裝 `src/` package。這同時避免 Space 建置器單獨複製檔案時遺失相鄰 include，也避免頂層與 transitive dependency 被 pip 解析成尚未測試的版本；本機仍直接使用 `uv.lock`。
+- Space runtime 依根目錄 `requirements.txt` 安裝外部套件：檔案直接內嵌由 `uv.lock` 匯出的完整 constraints，不引用相鄰檔案，也不在這個階段安裝本專案。Space builder 會先執行此步驟，之後才把 repository 複製到 `/app`；根目錄 `app.py` 啟動時再以 `pathlib` 將 `src/` 加入 module path。這同時避免建置順序造成 include／editable install 失敗，也避免 transitive dependency 漂移；本機仍直接使用 `uv.lock`。
 
 更新 `uv.lock` 後必須同步重建 Space constraints；測試會逐字比對 exporter 輸出，漏做時直接失敗：
 
 ```powershell
 uv export --locked --format requirements.txt --no-dev --no-emit-project `
   --no-hashes --no-annotate --no-header --output-file requirements.txt
-Add-Content -LiteralPath requirements.txt -Encoding utf8 -Value '-e .'
 ```
 
 根目錄 README metadata 已指定：

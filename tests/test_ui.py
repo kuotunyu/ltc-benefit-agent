@@ -192,8 +192,6 @@ def test_space_metadata_and_install_entrypoint_are_complete() -> None:
     active_requirements = [
         line for line in requirements_lines if line and not line.startswith("#")
     ]
-    assert active_requirements[-1] == "-e ."
-
     exported = subprocess.check_output(
         [
             "uv",
@@ -211,7 +209,7 @@ def test_space_metadata_and_install_entrypoint_are_complete() -> None:
         text=True,
         encoding="utf-8",
     )
-    assert active_requirements[:-1] == exported.splitlines()
+    assert active_requirements == exported.splitlines()
 
     lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
     locked_versions: dict[str, set[str]] = {}
@@ -221,7 +219,9 @@ def test_space_metadata_and_install_entrypoint_are_complete() -> None:
         requirement = line.split(" ; ", 1)[0]
         name, version = requirement.split("==", 1)
         assert version in locked_versions[name]
-    assert (ROOT / "app.py").is_file()
+    app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+    assert 'Path(__file__).resolve().parent / "src"' in app_source
+    assert "sys.path.insert(0, str(SOURCE_ROOT))" in app_source
 
 
 def test_empty_model_reply_separates_multiple_people() -> None:

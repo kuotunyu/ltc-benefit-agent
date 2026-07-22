@@ -1,5 +1,5 @@
-# Hugging Face Space 會把本檔單獨複製到 /tmp，因此不能引用相鄰檔案。
-# 下列完整 runtime constraints 由 uv.lock 匯出；最後以 editable install 載入 src package。
+# Hugging Face Space 會先單獨安裝本檔，再把 repository 複製到 /app。
+# 下列完整 runtime constraints 由 uv.lock 匯出；src package 由根目錄 app.py 啟動時載入。
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.14.2
@@ -86,4 +86,3 @@ uvicorn==0.51.0
 websockets==15.0.1
 xxhash==3.8.1
 zstandard==0.25.0
--e .
