@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,9 @@ from ltc_benefit_agent.evaluation.evaluator import (
     ScenarioTrace,
     ToolTrace,
     evaluate_trace,
+)
+from ltc_benefit_agent.evaluation.public_export import (
+    build_public_evaluation_summary,
 )
 from ltc_benefit_agent.evaluation.merge import merge_evaluation_payloads
 from ltc_benefit_agent.evaluation.runner import run_suite
@@ -436,3 +440,105 @@ def test_f1_converter_forces_uv_managed_python_311() -> None:
         / "f1-tools.Modelfile.template"
     ).read_text(encoding="utf-8")
     assert '.Role "tool" }}<|start_header_id|>ipython' in template
+
+
+def _public_result(scenario_id: str, *, passed: bool = True) -> dict[str, object]:
+    return {
+        "scenario_id": scenario_id,
+        "followup_correct": passed,
+        "tool_selection_correct": passed,
+        "tool_arguments_correct": passed,
+        "amount_exact": passed,
+        "pii_leak_count": 0,
+        "hitl_correct": passed,
+        "end_to_end_pass": passed,
+        "notes": ["must not be exported"],
+    }
+
+
+def _public_artifact(results: list[dict[str, object]]) -> dict[str, object]:
+    passed = sum(bool(item["end_to_end_pass"]) for item in results)
+    return {
+        "provider": "local",
+        "model": "configured-model",
+        "metrics": {
+            "scenario_count": len(results),
+            "followup_correct": passed,
+            "tool_selection_correct": passed,
+            "tool_arguments_correct": passed,
+            "amount_exact": passed,
+            "pii_leak_count": 0,
+            "hitl_correct": passed,
+            "end_to_end_pass": passed,
+        },
+        "results": results,
+        "traces": [
+            {
+                "scenario_id": item["scenario_id"],
+                "trace": {
+                    "raw_conversation": "王小明 A123456789 0912-345-678",
+                    "tool_arguments": {"age": 70},
+                },
+            }
+            for item in results
+        ],
+    }
+
+
+def test_public_evaluation_export_keeps_scores_but_strips_raw_trace(
+    tmp_path: Path,
+) -> None:
+    scenario_path = tmp_path / "scenarios.json"
+    scenario_path.write_text(
+        json.dumps(
+            [
+                {"id": "S01", "expected_money": None},
+                {"id": "S02", "expected_money": {"copay": 1600}},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    artifact_path = tmp_path / "raw.json"
+    artifact_path.write_text(
+        json.dumps(_public_artifact([_public_result("S01"), _public_result("S02")])),
+        encoding="utf-8",
+    )
+
+    summary = build_public_evaluation_summary(scenario_path, [artifact_path])
+    serialized = json.dumps(summary, ensure_ascii=False)
+
+    assert summary["scenario_count"] == 2
+    assert summary["money_scenario_count"] == 1
+    assert summary["runs"][0]["money_exact"] == 1
+    assert summary["runs"][0]["metrics"]["end_to_end_pass"] == 2
+    assert set(summary["runs"][0]["results"][0]) == {
+        "scenario_id",
+        "followup_correct",
+        "tool_selection_correct",
+        "tool_arguments_correct",
+        "amount_exact",
+        "pii_leak_count",
+        "hitl_correct",
+        "end_to_end_pass",
+    }
+    assert "王小明" not in serialized
+    assert "A123456789" not in serialized
+    assert "0912-345-678" not in serialized
+    assert "raw_conversation" not in serialized
+    assert '"tool_arguments":' not in serialized
+    assert "must not be exported" not in serialized
+
+
+def test_public_evaluation_export_rejects_metric_mismatch(tmp_path: Path) -> None:
+    scenario_path = tmp_path / "scenarios.json"
+    scenario_path.write_text(
+        json.dumps([{"id": "S01", "expected_money": None}]),
+        encoding="utf-8",
+    )
+    artifact = _public_artifact([_public_result("S01")])
+    artifact["metrics"]["end_to_end_pass"] = 0
+    artifact_path = tmp_path / "raw.json"
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="metrics do not match"):
+        build_public_evaluation_summary(scenario_path, [artifact_path])
