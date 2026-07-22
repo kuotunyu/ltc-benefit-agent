@@ -68,6 +68,7 @@
 | D38 | 2026-07-23 | 使用者明確輸入的福利身分由 intake 確定性正規化：第一類／長照低收入戶為 `FIRST`、第二類／長照中低收入戶為 `SECOND`、第三類／長照一般戶／一般戶為 `THIRD`，並優先覆蓋模型參數 | 公開 Space 驗收證明模型可能把「一般戶」誤傳為 `FIRST`；福利類別直接影響部分負擔，必須和 CMS、服務費一樣以可逐字核對的使用者資料鎖定 |
 | D32 | 2026-07-22 | raw evaluation traces 維持 ignored；公開摘要只保留逐題確定性評分、aggregate、scenario／artifact SHA-256，不含對話、工具參數／結果、attempts 或 notes | GitHub 上的評估數字需要可查核，但 raw trace 可能包含測試 PII 與模型文字；exporter 會重算 metrics 並在 coverage、順序、trace 數或 aggregate 不一致時拒絕輸出 |
 | D33 | 2026-07-22 | 公開 CI 使用 Windows runner、Python 3.11、與本機相同的 uv 0.11.18；依官方建議將 setup action 固定到 v8.1.0 commit SHA | 專案的首要執行環境是 Windows，CI 應驗證 lock、完整 pytest 與 distribution build；固定 action／uv 版本降低供應鏈漂移，workflow 不使用 Secrets 或模型 API |
+| D39 | 2026-07-23 | Gradio UI 以 `gr.State(uuid4)` 保存每個瀏覽器 session 的穩定 thread ID；approve 完成後顯示不可重按的「已核准並發布」，服務層對相同 thread 的重複 approve 回傳同一份已發布原文 | 公開 Space 的 `request.session_hash` 在草稿與決策事件間未可靠對應，造成待核准狀態遺失；Gradio 6 SSR 又會保留作為事件來源的 Button，因此以 session state、冪等服務與明確 disabled 完成狀態共同避免 `common.error` 與誤導重按 |
 
 ## 公開介面與計算契約
 

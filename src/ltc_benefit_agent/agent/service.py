@@ -96,6 +96,7 @@ class BenefitAgentService:
     def __init__(self, runtime: AgentRuntime) -> None:
         self.runtime = runtime
         self._pending_previews: dict[str, str] = {}
+        self._published_reports: dict[str, str] = {}
         self._pending_lock = Lock()
 
     @staticmethod
@@ -143,14 +144,35 @@ class BenefitAgentService:
             if preview is not None:
                 with self._pending_lock:
                     self._pending_previews[thread_id] = preview
+                    self._published_reports.pop(thread_id, None)
         return normalized
+
+    @staticmethod
+    def _published_result(thread_id: str, report: str) -> AgentTurnResult:
+        return AgentTurnResult(
+            thread_id=thread_id,
+            state={
+                "messages": [
+                    AIMessage(
+                        content=report,
+                        additional_kwargs={"deterministic_published_report": True},
+                    )
+                ]
+            },
+            interrupts=(),
+        )
 
     def decide(self, thread_id: str, decision: Decision) -> AgentTurnResult:
         if decision not in {"approve", "reject"}:
             raise ValueError("decision 只允許 approve 或 reject")
         with self._pending_lock:
             preview = self._pending_previews.get(thread_id)
+            published = self._published_reports.get(thread_id)
         if preview is None:
+            # 瀏覽器若因網路或 UI 更新失敗重送 approve，回傳第一次已發布的
+            # 完整原文；不可再次 resume HITL，也不應讓 Gradio 顯示通用錯誤。
+            if decision == "approve" and published is not None:
+                return self._published_result(thread_id, published)
             raise ValueError("此 thread 沒有待確認的完整報告")
         self.runtime.audit.record(
             "human_decision", payload={"thread_id": thread_id, "decision": decision}
@@ -163,6 +185,8 @@ class BenefitAgentService:
         normalized = self._normalize_result(thread_id, result)
         with self._pending_lock:
             self._pending_previews.pop(thread_id, None)
+            if decision == "approve":
+                self._published_reports[thread_id] = preview
         if decision == "reject":
             return normalized
 

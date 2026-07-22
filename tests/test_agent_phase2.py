@@ -694,12 +694,17 @@ def test_full_create_agent_flow_masks_pii_and_waits_for_exact_approval() -> None
     assert not approved.awaiting_approval
     assert approved.latest_text == preview
 
+    repeated = service.decide("thread-a", "approve")
+    assert not repeated.awaiting_approval
+    assert repeated.latest_text == preview
+
     log_text = repr(audit.snapshot())
     for secret in ("王小明", "A123456789", "0912-345-678"):
         assert secret not in log_text
     assert "tool_call" in log_text
     assert "tool_result" in log_text
     assert "human_decision" in log_text
+    assert log_text.count("human_decision") == 1
 
 
 def test_publish_call_uses_exact_draft_when_adapter_reescapes_newlines() -> None:

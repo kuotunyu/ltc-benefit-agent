@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub／公開 Space 已同步至 `7aa06bf` 且為 `RUNNING`。公開複驗已確認主版本改回 `CURRENT_2026_07`、資格文案為正體中文，但發現模型把「一般戶」誤傳為第一類；確定性正規化已在本機完成，待重新部署驗收。
-- **本次完成**：Space 第四次 Build 通過；比較選項使用專用 directive，主版本維持現制；公開資格 status／basis 改為中文。第二輪再把第一／二／三類與低收／中低收／一般戶同義詞鎖進 intake，使用者明確值優先覆蓋模型參數。
-- **實跑總證據**：Hugging Face API 回報 `7aa06bf`、stage `RUNNING`、CPU Basic；公開畫面證明現制與中文修正生效。福利類別回歸以模型故意傳錯 FIRST 驗證一般戶仍進 `THIRD`；Agent **35 passed in 1.02s**，`uv lock --check`、完整 pytest **508 passed in 3.20s**、sdist／wheel build 均成功。
-- **Context7**：以 `/websites/langchain_oss_python` 查證 LangChain 1.x `wrap_model_call` 有限重試、`ModelRequest.override`、動態工具子集與 `tool_choice`；再以鎖定的 LangChain 1.3.14／Ollama connector 實作複核。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；GitHub／公開 Space 已同步至 `93b7a2d` 且為 `RUNNING`。公開複驗證明現制、中文資格、一般戶第三類 16% 與金額均正確；核准事件的 session／完成狀態缺陷已在本機修正，待重新部署驗收。
+- **本次完成**：一般戶正規化已公開生效；再依 Space runtime log 定位 `request.session_hash` 跨事件不可靠與重複 approve 非冪等。UI 改用 `gr.State(uuid4)`，服務重複核准只回傳既有原文，核准後顯示不可重按的「已核准並發布」。
+- **實跑總證據**：Hugging Face API 回報 `93b7a2d`、stage `RUNNING`、CPU Basic；公開草稿為 `CURRENT_2026_07`、第三類、16%、政府給付 15,120 元、自付 2,880 元。零模型 Playwright 實際點擊輸出 `UI_SMOKE_OK`；`uv lock --check`、完整 pytest **508 passed in 3.40s**、sdist／wheel build 均成功。
+- **Context7**：以 `/gradio-app/gradio` 查證多輸出 callback、元件更新與 `gr.State(uuid4)` 的 session state 用法；LangChain 既有查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者提交福利類別正規化修正，先 Push `origin main`，再 Push `space main`；不要使用 `-u` 改變 GitHub upstream。
-  2. 清除舊 Space session，以勾選舊制比較的已知 CMS／一般戶情境重跑；主報告須為 `CURRENT_2026_07`，一般戶須為第三類 16%，另列 `LEGACY_2022` 比較，核准後最終文字須與預覽一致。
+  1. 作者提交 Gradio stable session、冪等 approve 與零模型瀏覽器回歸，先 Push `origin main`，再 Push `space main`。
+  2. Space 重新部署後以全新頁面重跑同一已知 CMS／一般戶案例；只按一次核准，須顯示「已核准並發布」、不可再點且無 `common.error`，最終原文與草稿一致。
   3. 再完成 unknown CMS 與手機寬度公開 smoke；若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限，最後才決定 `phase-4` tag／Release。
 - **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：`origin`／`space` 目前都是 `7aa06bf`；福利類別正規化、prompt／tool schema、測試與文件待作者自行 commit，再依序 Push 兩個 remote。Agent 未執行任何 Git 指令。
-- **⚠️ 已知坑**：福利類別不能依賴模型理解「一般戶」等同第三類，必須由 intake 覆蓋；比較 UI 必須使用專用 directive；Space builder 仍須連同 Gradio MCP extras 驗證；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
+- **待使用者 Git 操作**：`origin`／`space` 目前都是作者已提供的 `93b7a2d`；本輪 session／approve 修正、瀏覽器回歸與文件待作者自行 commit，再依序 Push 兩個 remote。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：Space SSR 不宜用 `request.session_hash` 作跨事件唯一鍵；Gradio 6 對事件來源 Button 的 `visible=False` 不可靠，完成態應 disabled 並明示；福利類別與版本比較仍須走確定性正規化；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -495,3 +495,11 @@
   - 回歸案例讓模型故意送出 `FIRST`、使用者輸入「一般戶」，最終 `copay_estimate` audit payload 仍為 `THIRD`，草稿為第三類、16%、政府給付 15,120 元、自付 2,880 元。另以七種公開標籤逐一驗證映射。
   - 實跑證據：Agent 專屬 **35 passed in 1.02s**；`uv lock --check`、完整 pytest **508 passed in 3.20s**，sdist／wheel build 均成功。
   - 成本與 Git：作者手動 Space 對話的實際 token／費用無法由畫面取得；Agent 未另發模型請求、未讀取 `.env`、未執行 Git。建議 commit：`fix(agent): 鎖定福利身分類別正規化`。
+
+- **2026-07-23（公開核准事件診斷與穩定 session 修正）**：
+  - 作者自行建立 `93b7a2d fix(agent): 鎖定福利身分類別正規化` 並同步 GitHub／Space；Hugging Face API 回報相同 SHA、`RUNNING`、CPU Basic。公開草稿確認主版本 `CURRENT_2026_07`、第三類、16%、政府給付 15,120 元、額度內部分負擔與合計自付 2,880 元，福利類別與金額缺陷已通過。
+  - 作者第一次按「核准並發布」後畫面仍保留操作按鈕，第二次顯示 `common.error`。Space runtime log 明確回報 `此 thread 沒有待確認的完整報告`；問題位於 Gradio session／完成狀態同步，不是資格、金額或 registry 改寫。
+  - 依 Context7 `/gradio-app/gradio` 的 session state 與多輸出 callback 文件，UI 改用 `gr.State(lambda: uuid4().hex)` 作每個瀏覽器 session 的穩定 thread ID，不再依賴跨 Space SSR 事件可能漂移的 `request.session_hash`。服務另保存已發布原文；相同 thread 重複 approve 直接回傳第一次結果，不再次 resume HITL 或新增 human decision。
+  - Gradio 6 SSR 實測會讓作為事件來源的 Button 保留於 DOM，但能可靠更新 `interactive=False`。完成態因此明示為不可重按的「已核准並發布」，拒絕按鈕以 disabled CSS 隱藏；上方固定顯示「報告已核准；發布內容與校閱草稿逐字一致。」新增 PLAN D39。
+  - 零模型 fixture／Playwright 在未占用的 7873 實際產生草稿並點擊核准，輸出 `UI_SMOKE_OK`；畫面確認完成文案、disabled 按鈕、拒絕按鈕隱藏與 15,120／2,880 元保持不變。測試只終止本輪核對過 PID 的 fixture，未碰其他程序。
+  - 實跑證據：Agent＋UI **46 passed in 2.83s**；`uv lock --check`、完整 pytest **508 passed in 3.40s**，sdist／wheel build 成功。沒有呼叫模型 API，新增成本 US$0；未讀取 `.env`、未執行 Git。建議 commit：`fix(ui): 穩定 Space 核准 session 與完成狀態`。
