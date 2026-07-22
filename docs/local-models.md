@@ -43,8 +43,9 @@ uv run --group model python scripts\prepare_f1_ollama.py `
 - F16 SHA-256：`03b7ebeca3b12a588b84ccdf07c22e4bb4f9afb2b11dbcb0dfd71ce1161effb9`
 - Q4_K_M SHA-256：`e17cf199a458cffa617073cb71df2bce02867e7622b685a7bef1c4dcec32035a`
 - Ollama alias：`ltc-f1:q4_k_m`；capabilities 為 `completion`、`tools`
-- 最終 20 題 trace：`artifacts/eval/f1-20-final.json`（ignored，不進版控）
+- 初始 20 題 trace：`artifacts/eval/f1-20-final.json`（ignored，不進版控）
+- workflow／template 強化後 trace：`artifacts/eval/f1-20-workflow-complete.json`（ignored，不進版控）
 
 Windows 轉檔時必須明確使用 uv-managed Python 3.11，且 converter subprocess 要移除繼承的 `VIRTUAL_ENV`；CUDA DLL 搜尋只限已下載的 llama.cpp binary 目錄，避免遞迴掃到 Windows 不可讀路徑。這兩項已寫入準備腳本與回歸測試。
 
-本次 3B 診斷能連續呼叫資格與金額工具，但沒有完成報告草稿與人工核准，端到端為 0 / 20。它目前只適合作為研究對照，不應作為完整 Agent 的預設模型。
+官方 tokenizer chat template 會把工具結果包成 `{"name": 工具名, "content": 結果}`；Ollama Modelfile 因此必須在 `<tool_response>` 同時輸出 `.ToolName` 與 `.Content`。舊模板只放內容時，實測會在第一個工具結果後產生空白回覆。修正模板並加入確定性 workflow 接續後，固定集端到端為 10 / 20、HITL 為 12 / 20、PII 洩漏為 0；仍只適合作為研究／可選地端模式，不應宣稱已可無人監督。

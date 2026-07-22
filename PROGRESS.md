@@ -2,19 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-22）
 
-- **現在做到哪**：Phase 1–4 工程、三模式固定 20 題、人工規則校對 5／5 與 release review 均完成；作者已將 `main` 首次 Push 至公開 GitHub repo，公開頁面、README、MIT License 與 8 筆 commits 均可讀取。
-- **實跑總證據**：人工簽核 5／5；`uv lock --check`、locked sync、compileall 通過；最新 pytest **479 passed in 3.12s**。六支 project skills、離線 CLI、公開文案、秘密與大檔掃描均通過。
-- **Context7**：全域 MCP 已啟用 OAuth；已用 `/websites/langchain_oss` 查證 `create_agent`／HITL、PII、`init_chat_model`。新增 `verify-external-api` project skill，驗證通過。
-- **本機 20 題**：12B adapter 為追問 12、選工具 5、參數 17、金額 19、PII 0、HITL 4、端到端 3；F1 為 18、0、12、14、0、0、0。
-- **雲端 20 題**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法報告發布被 registry 擋下並誠實計為失敗。
-- **金額口徑**：20 題中 13 題應試算、7 題不得試算；真正金額一致為雲端 12／13、F1 7／13、12B adapter 12／13，README 已避免把 19／20 誤讀為算了 20 題。
+- **現在做到哪**：Phase 1–4、三模式 20 題、規則人工校對 5／5 與 GitHub 公開上線完成；UI／UX 暫時定版，主線正處理 Agent 可靠性與雲端模型遷移。
+- **本次完成**：stable `gemini-3.5-flash-lite` 遷移與真實 connector smoke 完成；雲端不傳 sampling 參數，medium thinking、連線與單次 function call 均已驗證，未改 `.env` 真值。
+- **實跑總證據**：Agent＋evaluator **34 passed**；Gemini 遷移專屬 Agent 測試 **21 passed**；完整 pytest **490 passed in 2.86s**。Gemini 3.5 smoke 為 1 次正確工具呼叫；F1 S11／S14 皆端到端 1／1。
+- **Context7**：以 `/websites/langchain_oss` 查證 LangChain 1.x `AgentMiddleware`、`after_model`、`hook_config(can_jump_to=["model"])` 與 state update；並以鎖定套件 signature 複核。
+- **本機 20 題強化後**：12B adapter 為追問 17、選工具 17、參數 16、金額 18、PII 0、HITL 17、端到端 12；F1 為 16、12、16、19、0、12、10。
+- **本機舊基線**：12B adapter 端到端 3／20、F1 0／20；強化後分別為 12／20、10／20，但追問／參數／金額仍各有退步項，README 已分表呈現。
+- **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
+- **金額口徑**：20 題中 13 題應試算；強化後 F1 為 12／13、12B adapter 11／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者將本次「首次公開上線」進度同步建立一筆文件 commit 並再次 Push。
-  2. GitHub Contributors 快取更新後，確認只顯示 `kuotunyu`；公開 commit 歷史目前 8／8 均已顯示 `kuotunyu`。
-  3. 作者需要時自行建立 `phase-4` tag，或另行準備 Hugging Face Space；Agent 不執行 Git／帳號操作。
-- **成本**：兩次 S14 保守上限合計 US$0.09；本次 20 題批次核准上限 US$0.90、實際帳單未知且尚未跑完，累計保守授權上限 US$0.99。
-- **待使用者 Git 操作**：Agent 未執行任何 Git 指令；小功能 commit 與 Phase tag 仍由作者自行處理。
-- **⚠️ 已知坑**：雲端專案有 15 requests/minute 限制，診斷固定共用 12/min limiter；3B 不可靠地進入建稿／HITL。合併 artifact 保留四段 partial run 的中止原因；`.env` 真值從未印出、覆寫或提交。
+  1. 針對 F1 S01–S08 與 12B 八題失敗 trace，改善前段資料蒐集／版本追問，不放寬 registry 或 HITL。
+  2. 若要取得新 workflow／新 Gemini 的雲端端到端成績，另行估算 S14 或固定 20 題成本並等待作者明確核准。
+  3. 作者自行 commit／Push 後檢查 GitHub／Hugging Face README 表格與圖片；需要時再建立 `phase-4` tag／Release。
+- **成本**：Gemini 3.5 smoke 使用 61 input、56 output tokens，依標準價推算約 US$0.0001583（實際帳單依方案／免費額度）；低於 US$0.00188 核准上限。既有雲端診斷累計保守授權上限 US$0.99。
+- **待使用者人工處理**：三個主要模型環境變數與 medium thinking 均已由作者設好；目前沒有必要設定。任何後續雲端 S14／20 題仍需另行核准成本。
+- **待使用者 Git 操作**：作者已建立 UI `bea9238` 與 Agent `e2c01ea`；文件 commit 與 Push 尚待作者執行。Agent 未執行任何 Git 指令。
+- **⚠️ 已知坑**：F1 前段資格／多輪資料保留仍不可靠；12B S06 的改稿被 registry 正確拒絕；Gemini 3.5 目前只驗證單次 connector／tool call，尚未重跑 S14 或固定 20 題；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -276,3 +279,136 @@
   - 作者設定 `origin` 為公開 repo，執行 `git push -u origin main` 成功；148 個 objects、267.26 KiB 完成上傳，`main` 已追蹤 `origin/main`。驗證由 Windows 已保存的 GitHub credential 自動完成，沒有要求重新輸入帳密。
   - 公開頁面實查可讀取 `main`、README、MIT License、完整檔案列表與 8 筆 commits；公開 commit 歷史 8／8 均顯示 `kuotunyu`，沒有 `tun0000` 或其他共同作者。Contributors 區塊可能仍受 GitHub 快取延遲影響。
   - Agent 未執行 Git；本次只同步 PROGRESS，待作者自行建立文件 commit 並 Push。API／模型成本 US$0。
+
+- **2026-07-22（產品工具介面重整，待作者視覺驗收）**：
+  - 依作者指定的 `impeccable` skill 完成產品訪談並建立 `PRODUCT.md`：介面定位為產品工具，品牌感受為清楚、可信、平靜，正文約 18 px，無障礙以 WCAG AA 為方向；PLAN 新增 D23。
+  - Gradio 移除帳冊紙張、印章、點陣背景與裝飾性字體，改用單一白色工作面、深綠重點色與明確資訊層級；控制列改為水平配置，對話輸入與送出按鈕併排，對話高度由大面積空白縮至桌機 300 px／手機 250 px，報告校閱提前出現在首屏後段。
+  - 全域正文、表單、按鈕與報告內容放大至約 17–18 px；加入可見鍵盤焦點、較高對比、最小控制高度、手機無水平溢出與 reduced-motion 規則。功能、PII、HITL 與 session 行為均未移除。
+  - 外部 API 查證：Context7 `/websites/gradio_app` 確認 Row／Button `scale`、Column `min_width` 與 CSS 用法；另對照鎖定的 Gradio 6.20.0，確認 Textbox、Button、Chatbot 使用的參數簽章。
+  - 實跑證據：UI 專屬 pytest **5 passed**；受控動態連接埠的桌機與 390 px 手機瀏覽器 smoke 均輸出 `UI_SMOKE_OK`、console 0 error，helper 只停止自己啟動的 server；本次最終 `uv lock --check`、compileall 通過，完整 pytest **479 passed in 2.66s**。
+  - 成本與 Git：沒有模型或付費 API 呼叫，新增成本 US$0；Agent 未讀取 `.env`、未停止既有程序、未執行任何 Git 指令。建議 commit：`feat(ui): 簡化試算介面並提升可讀性`。
+
+- **2026-07-22（產品工具介面第二輪 distill，待作者視覺驗收）**：
+  - 依作者回饋與 `impeccable distill` 移除主內容／報告區外層卡片、控制列分隔線、提醒框、狀態底色及模型／舊制控制的元件外殼；保留設定、對話、報告三個有意義層級，既有功能未刪除。
+  - 空白對話改為 150 px；開始出現訊息後恢復桌機 230 px／手機 210 px 並可捲動。空報告最小高度由 140 降至 90 px，輸入框改單行並縮短手機 placeholder，減少首次載入的無效空白。
+  - 下拉選單輸入與三個展開選項均由瀏覽器量測確認至少 18 px；修正全域 input 高度誤套 checkbox 的根因，舊制控制改為「同時顯示 2022 舊制」，checkbox 實測 22×22 px、標籤至少 18 px。
+  - 瀏覽器驗收加入頁首間距、空對話高度、下拉選項字級、checkbox 尺寸與手機無水平溢出斷言。受控 helper 以動態未占用連接埠完成桌機／390 px 手機 `UI_SMOKE_OK`、console 0 error，且只停止自己啟動的 server。
+  - 最終證據：`uv lock --check`、compileall 通過，完整 pytest **479 passed in 2.61s**。沒有模型或付費 API 呼叫，新增成本 US$0；PLAN 決策仍沿用 D23，無新架構或驗收標準變更。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；待作者驗收後自行 commit／Push。建議 commit：`feat(ui): 扁平化試算流程並改善空間使用`。
+
+- **2026-07-22（輸入辨識與 progressive disclosure，待作者視覺驗收）**：
+  - 依作者回饋與 `impeccable clarify` 修正首次使用心智模型：將輸入框移到對話紀錄之前，固定標籤改成「請在這裡輸入家庭情況」，placeholder 提供年齡、協助項目與持續時間的具體範例；狀態文字直接指示在上方輸入後送出。
+  - 空的對話紀錄不再渲染成疑似輸入區；`conversation-section` 初始隱藏，第一次送出後才顯示。`report-section` 也改為有草稿／明細／來源後才顯示，首次載入不再保留兩塊無效空白。
+  - 全域正文、表單、按鈕、下拉本體與選項、舊制標籤、狀態、報告內容提升至 19 px；真正的輸入標籤為 20 px 粗體。Context7 `/websites/gradio_app` 確認 Gradio 6 的 Row／Column 可作 event output 並動態更新 `visible`。
+  - 新增確定性 UI 回歸測試，分別驗證無內容、已有對話、已有報告三種顯示狀態；UI 專屬 **6 passed**。瀏覽器 smoke 驗證桌機／390 px 手機首次載入只顯示明確輸入流程、隱藏空對話與空報告、19 px 字級、無水平溢出，結果 `UI_SMOKE_OK`、console 0 error。
+  - 最終證據：`uv lock --check`、compileall 通過，完整 pytest **480 passed in 2.86s**。沒有模型或付費 API 呼叫，新增成本 US$0；PLAN 沿用 D23，沒有規則或架構決策變更。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；待作者驗收後自行 commit／Push。建議 commit：`feat(ui): 明確區分輸入區並按需顯示結果`。
+
+- **2026-07-22（直覺式單人評估流程與空回覆保護，待作者視覺驗收）**：
+  - 依作者回饋與 `impeccable onboard` 將首次操作改成四個明確動作：一次選一位家人、在指定欄位打字、按「開始資格初篩」、依序回答並校閱報告；輸入範例直接列出年齡、生活協助與持續時間。
+  - 模型模式與 2022 舊制比較移到輸入區下方的「其他選項（一般情況不用設定）」收合區；主要輸入與綠色開始按鈕優先出現。標題、使用方式與輸入區之間的 Gradio 預設無效間距由瀏覽器實測 38 px 收至 20 px 門檻內。
+  - 修正空模型回覆造成空白助理訊息的問題：controller 現在以不涉及資格或金額計算的確定性引導文字，要求一次選一人並補充年齡、洗澡、穿衣、吃飯、行走或如廁需求；後續狀態明確指出回到同一輸入欄並按「送出補充資料」。
+  - HITL 草稿提示移除「右側」等版面相依說法，改成檢查下方內容並選擇核准或退回修正；清除動作改為「改評估另一位家人」，避免把 session 技術詞暴露給一般使用者。
+  - 實跑證據：UI 專屬 **7 passed**；受控動態連接埠完成桌機／390 px 手機 smoke，均為 `UI_SMOKE_OK`、console 0 error，測試 helper 只停止自己啟動的 server。最終 `uv lock --check`、compileall 通過，完整 pytest **481 passed in 2.67s**。
+  - 成本與決策：沒有模型或付費 API 呼叫，新增成本 US$0；沿用 PLAN D23，未改規則、Agent 架構或驗收標準。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；待作者視覺驗收後自行 commit／Push。建議 commit：`feat(ui): 加入直覺式單人評估引導與空回覆保護`。
+
+- **2026-07-22（content blocks 與情境承接修正，待作者視覺驗收）**：
+  - 作者實測發現單一 84 歲家人情境已清楚提供年齡與健康描述，空回覆保護卻錯誤要求「先選其中一位」；確認根因是上一輪 fallback 只要遇到空文字就固定重播多人提示，屬系統答非所問，不是使用者輸入錯誤。
+  - Context7 `/websites/langchain_oss_python` 查證 LangChain 1.x 應由 `BaseMessage.content_blocks` 讀取標準文字區塊；服務層原本只接受字串，可能把有效的 provider content blocks 誤判為空白。現已同時支援字串與標準 text blocks，忽略 reasoning block，且保留原始字元與換行，維持 HITL 預覽／發布逐字一致。
+  - 空回覆 fallback 改為依已知 user turns 保守找缺漏：已提供年齡就先承接，不重問年齡；只有當前輸入明確提到多人時才要求分開評估。年齡或疾病描述不直接當成失能，下一問改為洗澡、穿衣、吃飯、起身走動、如廁的協助需求與持續時間，不做資格或金額計算。
+  - 一般追問不再顯示重複的狀態列，只保留對話中的實際問題；對話區在有內容後增至桌機 320 px／手機 300 px，避免較長追問把上一則使用者訊息捲出可視區而看似空白。
+  - 新增零模型 `ui_fixture_app.py`，以匿名化的單人年齡／疾病／交通描述情境實際點擊 Gradio；瀏覽器確認回答保留 84 歲、改問日常生活功能、不出現「先選其中一位」、不顯示重複狀態，並輸出一問一答 screenshot。測試 helper 只停止自己啟動的動態連接埠 server。
+  - 實跑證據：Agent／UI 針對性 **24 passed**；受控瀏覽器 `UI_SMOKE_OK`、console 0 error；最終 `uv lock --check`、compileall 通過，完整 pytest **483 passed in 2.62s**。沒有模型或付費 API 呼叫，新增成本 US$0。
+  - 決策與 Git：沿用 PLAN D23，沒有規則、金額工具或 HITL 邊界變更；Agent 未讀取 Git 狀態、未執行任何 Git 指令。待作者驗收後建議 commit：`fix(ui): 正確承接已知情境並支援 content blocks`。
+
+- **2026-07-22（目前問題與完整歷史分層，待作者視覺驗收）**：
+  - 依作者回饋與 `impeccable layout` 重新定義結果區：固定高度 Chatbot 不再承擔主要問題；最新系統追問改由自動增高的 Markdown 區完整呈現，正文 20 px、1.75 行高、75ch 行長上限與高對比深色，主要閱讀不產生框內垂直滑桿。
+  - 完整 Chatbot 移入預設收合的「查看完整對話紀錄」，僅在需要稽核過去輪次時打開；報告產生後隱藏目前問題區，避免與 HITL 待核准狀態重複。輸入欄、送出按鈕、最新問題與歷史紀錄形成明確主次層級。
+  - 修正「其他選項」容器的水平捲動：控制列允許 responsive wrap，容器不再顯示水平滑桿；瀏覽器同時驗證下拉選項仍可正常展開，沒有以裁切換取表面整齊。
+  - Context7 `/websites/gradio_app` 確認 Gradio 6 可用 Column 作 event output 動態切換整組元件，Markdown 適合直接呈現自動高度文字；沿用既有 Blocks 與 progressive disclosure，沒有新增前端框架。
+  - 自動驗收新增：目前問題 `overflow-y` 不得為 auto／scroll、scroll height 不得超過 client height、正文 computed color 必須為 `rgb(23, 33, 29)`、完整歷史預設不可見、其他選項不可有水平捲動、390 px 手機不可水平溢出。桌機與手機一問一答 screenshots 均實際讀回。
+  - 實跑證據：UI 專屬 **8 passed**；受控動態連接埠瀏覽器 `UI_SMOKE_OK`、console 0 error；最終 `uv lock --check`、compileall 通過，完整 pytest **483 passed in 2.63s**。沒有模型或付費 API 呼叫，新增成本 US$0。
+  - 決策與 Git：沿用 PLAN D23，未改規則、Agent、PII 或 HITL 邊界；Agent 未讀取 Git 狀態、未執行任何 Git 指令。待作者驗收後建議 commit：`feat(ui): 分離目前問題與完整對話紀錄`。
+
+- **2026-07-22（原地多輪回答流程與 Gradio 6 歷史相容，待作者視覺驗收）**：
+  - 依作者回饋與 `impeccable onboard` 將介面拆成兩個明確階段：首次只顯示四步教學、起始描述欄與進階設定；第一次送出後整組自動隱藏，改為「系統現在想問你 → 直接回答上面的問題 → 送出回答」，每一輪都在同一位置更新，不必回頁首找輸入框。
+  - 追問區加入持續多輪的明示說明；目前問題、回答欄與按鈕保持相鄰，完整歷史維持預設收合，模型模式與舊制選項只在開始前設定。桌機與 390 px 手機 screenshots 已讀回，主要操作路徑沒有內部滑桿或水平溢出。
+  - 兩輪瀏覽器 smoke 首次揭露真實相容性錯誤：Gradio 6 將 Chatbot 文字送回為 `[{"type": "text", "text": ...}]` content blocks，舊 controller 以純字串 join 而在第二輪拋出 `TypeError`。依 Context7 `/websites/gradio_app` 的 ChatMessage 契約新增文字 block 正規化，非文字 block 不帶入資格初篩脈絡。
+  - 新增回歸測試直接用 Gradio content blocks 重播第二輪；瀏覽器實際輸入年齡／健康描述，再補充生活協助與 8 個月持續時間，確認下一題原地更新為原住民、身障、失智、PAC 與住宿狀態，回答欄清空後仍可繼續使用，完整歷史保持收合。
+  - 實跑證據：UI 專屬 **10 passed**；受控動態連接埠的桌機／手機初始與連續兩輪 smoke 為 `UI_SMOKE_OK`、console 0 error，helper 只停止自己啟動的 server；最終 `uv lock --check`、compileall 通過，完整 pytest **485 passed in 2.76s**。
+  - 成本與決策：零模型 fixture，沒有 Gemini／Ollama 或付費 API 呼叫，新增成本 US$0；沿用 PLAN D23，未改規則、金額、PII 或 HITL 邊界。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；待作者視覺驗收後建議 commit：`fix(ui): 改善原地多輪回答並相容 Gradio content blocks`。
+
+- **2026-07-22（視覺系統與歷史工具列 polish，待作者視覺驗收）**：
+  - 依作者四項回饋與 `impeccable polish／colorize` 採 restrained 產品配色：工作寬度收至 1180 px，以綠灰頁底、白色操作面、淡綠目前問題區、深綠主要動作及一致的 10／12 px 圓角建立清楚、可信、平靜的層級；沒有漸層、插畫、玻璃效果或裝飾動畫。
+  - 「查看完整對話紀錄」改為 20 px 粗體且具 hover 底色；其他 Accordion 標題統一為 19 px，進階設定文案縮短為「進階設定（一般不用調整）」，避免手機不自然斷行。瀏覽器 computed style 實測歷史標題至少 20 px、進階設定至少 19 px。
+  - Chatbot 由每則訊息 `copy` 改成單一 `copy_all`，展開歷史實測訊息內按鈕數為 0、整體工具按鈕不超過 2 個；逐則複製不再占用訊息底部空白列，另輸出 `gradio-history-expanded.png` 人工讀回。
+  - 「重新評估另一位家人」改為 2 px 深綠外框、48 px 高與清楚 hover／active 狀態；桌機保持右側緊湊次要動作，手機獨立整行，不再擠壓「系統現在想問你」。回答 composer 移除外層巢狀卡片，只保留實際輸入面與主要送出按鈕。
+  - 實跑證據：UI 專屬 **10 passed**；受控動態連接埠的桌機／390 px 手機初始、連續兩輪與展開歷史 smoke 為 `UI_SMOKE_OK`、console 0 error；最終 `uv lock --check`、compileall 通過，完整 pytest **485 passed in 3.10s**。
+  - 成本與決策：Context7 查證 Chatbot `buttons` API；零模型 fixture，沒有 Gemini／Ollama 或付費 API 呼叫，新增成本 US$0。沿用 PLAN D23，未改規則、金額、PII 或 HITL 邊界。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；待作者視覺驗收後建議 commit：`feat(ui): 統一視覺層級並精簡對話工具列`。
+
+- **2026-07-22（公開展示版介面與 README 首屏，待作者視覺驗收）**：
+  - 依作者指定的 `frontend-design` skill 將方向收斂為 refined civic tool：保留清楚、可信、平靜的產品工具感，不做政府表單仿製，也不加入漸層、玻璃、插畫或裝飾動畫。
+  - Gradio 頁首新增三項可驗證承諾：「CMS 未知不猜級」、「金額由 Python 計算」、「報告發布前先確認」；目前問題、回答 composer、完整歷史與狀態統一使用 920 px 閱讀欄，問題正文不再受 75ch 限制而在卡片右側留下無效空白，手機版則維持滿寬堆疊。
+  - README 首屏新增產品定位、Python／測試／授權／UI badges、三欄專案亮點與真實 Gradio 預覽；`docs/assets/gradio-showcase.png` 以虛構情境和零模型 fixture 產生，尺寸 1440×760、約 113 KiB，不含個資或模型輸出，可由 GitHub 與 Hugging Face 的相對路徑共同呈現。
+  - 外部 API 查證：Context7 `/websites/gradio_app` 確認 Gradio 6 的 Blocks、HTML／Markdown 與 responsive Row／Column 用法；沒有改用外部前端框架。PLAN 沿用 D23，未改規則、金額、PII、Agent 或 HITL 邊界。
+  - 實跑證據：UI 專屬 **10 passed in 2.03s**；桌機／390 px 手機、連續兩輪與展開歷史的受控瀏覽器 smoke 為 `UI_SMOKE_OK`、console 0 error；`uv lock --check`、compileall 通過，完整 pytest **485 passed in 2.67s**。Windows helper 留下的 fixture listener 經 PID、父程序與命令列核對後只停止該測試程序，17860 已釋放。
+  - 成本與 Git：零模型 fixture，沒有 Gemini／Ollama 或付費 API 呼叫，新增成本 US$0；Agent 未讀取 Git 狀態、未執行任何 Git 指令。待作者視覺驗收後建議 commit：`feat(showcase): 強化公開介面與 README 展示`。
+
+- **2026-07-22（首屏減法與舊制選項字級，待作者視覺驗收）**：
+  - 依作者截圖與 `impeccable distill／typeset` 移除 Gradio 頁首的說明句及三個信任標籤，只保留「長照 2.0 資格與補助初步試算」；README 仍保留完整設計哲學與亮點，產品操作介面不再重複宣告。
+  - 「同時顯示 2022 舊制」改為直接指定 Gradio checkbox 的 label、可見 span 與 block-info 節點，字級固定 **1.25rem（20 px）**、700 粗體、1.4 行高；勾選框維持 22×22 px，不改功能、預設值或 event binding。
+  - Context7 `/websites/gradio_app` 查證 Gradio 6 Checkbox 支援 `elem_id`／`elem_classes`，官方建議以自訂 ID 搭配必要的 `!important` 覆寫；沿用既有 `legacy-toggle`，避免依賴易變的內建 class。
+  - 瀏覽器驗收新增可見文字節點的 computed font-size／font-weight 斷言與 `gradio-settings.png`；人工讀回確認首屏只剩標題、舊制選項與模型下拉為同一閱讀層級。桌機／390 px 手機、進階設定、連續兩輪與歷史均為 `UI_SMOKE_OK`、console 0 error，測試連接埠皆已釋放。
+  - 最終證據：UI 專屬 **10 passed in 2.15s**；`uv lock --check`、compileall 通過，完整 pytest **485 passed in 2.62s**。零模型 fixture，新增成本 US$0；沿用 PLAN D23，未改規則、金額、PII、Agent 或 HITL 邊界。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；待作者驗收後建議 commit：`feat(ui): 精簡首屏並放大舊制比較選項`。
+
+### Post-Phase — Agent 可靠性強化
+
+- **2026-07-22（有限次工具流程續跑保護）**：
+  - 作者表示 UI／UX 暫時 OK，介面視為現階段已接受；開發主線改為改善既有 20 題揭露的 tool selection／HITL 可靠性，不調整已通過人工校對的確定性資格與金額公式。
+  - 唯讀重查三模式既有 trace：共同失敗點是模型成功呼叫 `eligibility_check`／`copay_estimate`／`build_report_draft` 後提早輸出文字，未繼續建稿或呼叫受 HITL 攔截的 `publish_report`；金額工具不是本次根因。
+  - Context7 `/websites/langchain_oss` 查證 LangChain 1.x class-based `AgentMiddleware`、custom state、`after_model` 與 jump hook；再以鎖定的 LangChain 1.3.14 signature 確認 `hook_config(can_jump_to=["model"])`、`ModelRequest.override` 與 `AgentState` 欄位。
+  - 新增 `WorkflowContinuationMiddleware`：只讀同一使用者輪次中的成功工具證據；資格缺漏時不介入，未知 CMS 明確要求建參考報告，金額完成後要求建稿，建稿後要求逐字發布。每階段最多提醒一次、每輪最多三次；不解析使用者敘述、不補 tool args、不計算資格或金額。PLAN 新增 D24。
+  - HITL approve／reject 回歸曾揭露續跑層會把已發布或已拒絕狀態誤認為草稿停住；已加入 `publish_report` 成功與 rejection 訊息終止條件，兩種既有流程均恢復通過。
+  - 實跑證據：Agent 專屬 **18 passed in 0.71s**；刻意在資格、金額、建稿後各停一次的 scripted model 最終進入 HITL，資格工具回傳 `INSUFFICIENT_INFORMATION` 的案例只追問缺漏且模型呼叫數維持 2。`uv lock --check` 通過，完整 pytest **487 passed in 2.73s**。
+  - 驗證邊界：尚未以真實 Gemini／Ollama 重跑診斷，因此本次只證明 graph 控制與安全邊界，不宣稱 20 題指標已提升。下一步先做單題地端 smoke；雲端批次仍須先列成本上限並取得作者確認。
+  - 成本與 Git：沒有 Gemini／Ollama 或付費 API 呼叫，新增成本 US$0；Agent 未讀取 Git 狀態、未執行任何 Git 指令。建議 commit：`fix(agent): 加入有限次工具流程續跑保護`。
+
+- **2026-07-22（確定性建稿接續、F1 template 修正與地端 20 題重測）**：
+  - 真實 F1 S14 首次重測揭露 `eligibility_check` 的 Optional 型別在 tool schema 仍被列為 required；改為真正的 `None`／`UNKNOWN` 預設後，缺值會進入確定性 `INSUFFICIENT_INFORMATION`，不再於 Pydantic 驗證階段中止。既有 CMS 4 情境的省略欄位回歸測試證實仍回 `CMS_PROVIDED_FOR_ESTIMATE`。
+  - 續跑提示雖有觸發，F1 仍在 ToolMessage 後回空白。比對原模型官方 tokenizer chat template 與 Ollama API 後，確認舊 Modelfile 的 `<tool_response>` 漏了工具名；模板補為同時輸出 `.ToolName` 與 `.Content`。測試 alias 共用既有 Q4_K_M blob，沒有重新下載、量化或複製 2.2 GB 權重。
+  - 修正 template 後，F1 能由資格繼續呼叫金額工具，但仍不願主動呼叫 14 欄位的建稿工具。依 PLAN D25，middleware 改為只從已成功 tool calls 複製驗證過的欄位建立草稿，再從 registry 回傳複製 `report_id`／Markdown 原文送入既有 HITL；unknown CMS 則直接建只有 2–8 級參考表的草稿，不推測等級或個人金額。
+  - middleware 合成的 `publish_report` 一度因明示 jump 直接進 tools 而繞過 framework 的 after-model HITL hook；移除該 jump、沿正常 routing 後，離線 approve／reject 與完整預覽重新通過。這個中間版本未進入公開 artifact，也未放寬發布規則。
+  - F1 測試 alias S14 為端到端 1／1 後，已複製回 `.env` 使用的 `ltc-f1:q4_k_m` 標籤；正式標籤 S14 與 S11 分別再次端到端 1／1。舊 manifest 可由 template 與既有 GGUF 重建；沒有修改 `.env`。
+  - F1 固定 20 題新結果：追問 16、工具選擇 12、參數 16、金額 19、PII 0、HITL 12、端到端 10；相較初始端到端 0、HITL 0 明顯改善，但追問 18→16。需試算 13 題中金額一致 12／13，失敗為 S08 PAC。
+  - 12B adapter 固定 20 題新結果：追問 17、工具選擇 17、參數 16、金額 18、PII 0、HITL 17、端到端 12；相較初始端到端 3、HITL 4 改善，但參數 17→16、金額 19→18。S06 的不一致報告仍被 registry 拒絕。
+  - 驗證證據：Agent＋evaluator **34 passed in 0.79s**；完整 pytest **488 passed in 3.25s**。README 已保留初始基線並新增「強化後地端重測」表，雲端舊數字明確標成尚未同版重跑。
+  - 資源與成本：執行前 RTX 4090 約 928 MiB／5%，`ollama ps` 無載入模型；查詢時 Ollama 服務由程式自行啟動，未停止任何程序。地端重測 API 成本 US$0；雲端沒有呼叫。`OLLAMA_BASELINE_MODEL` 未設時第一次 12B 命令在模型載入前安全停止，正式重測只在子程序暫設 `ltc-gemma3-tools:12b`。
+  - 清理：驗證後刪除本輪建立的 `ltc-f1-template-test:q4_k_m` 測試 alias 與 ignored 臨時 Modelfile；正式 `ltc-f1:q4_k_m`、共用 Q4_K_M 權重與版本控制內模板均保留，測試 alias 可重建。
+  - 最終收尾：`uv lock --check`、三個本輪修改模組的 `py_compile` 與完整 pytest 再次通過；最新完整結果為 **488 passed in 3.24s**。快速回憶區維持 21 行，README 的初始歷史基準與強化後地端重測仍分表呈現。
+  - 決策與 Git：新增 PLAN D25／D26；Agent 未讀取 Git 狀態、未執行任何 Git 指令。建議 commit：`fix(agent): 以確定性流程接續建稿與 HITL`。
+
+- **2026-07-22（Gemini 3.5 Flash-Lite 零成本遷移準備）**：
+  - Context7 `/websites/ai_google_dev_gemini-api` 與官方模型頁確認 `gemini-3.5-flash-lite` 為 2026-07-21 更新的 stable GA model，支援 function calling；官方遷移文件要求移除 `temperature`／`top_p`／`top_k`，並建議多步工具任務使用 medium 或 high thinking。
+  - 鎖定套件為 LangChain 1.3.14、`langchain-google-genai` 4.3.0、`google-genai` 2.13.0；Context7 與本機 signature 均確認 `thinking_level` 可用。雲端 connector 不再傳 sampling 參數，新增 `GEMINI_THINKING_LEVEL`，預設 medium；Ollama 仍維持 `temperature=0`。
+  - `.env.example`、AGENTS／CLAUDE 模型政策與 PLAN 官方來源更新為新 stable model；真正 `.env` 未讀取、未修改。新增 PLAN D27。
+  - 實跑證據：`uv lock --check`、兩個遷移模組 `py_compile` 通過；Agent 專屬 **21 passed in 0.76s**，完整 pytest **490 passed in 2.86s**。沒有 Gemini 呼叫，新增 API 成本 US$0。
+  - 依官方標準價 input US$0.30／1M、output（含 thinking）US$2.50／1M，單次 smoke 以 2,000 input、512 output 上限估得 **US$0.00188**；尚待作者更換 `.env` model ID 並明確核准，未執行。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令。建議 commit：`feat(cloud): 遷移至 Gemini 3.5 Flash-Lite`。
+
+- **2026-07-22（Gemini 3.5 Flash-Lite 真實連線與 tool-calling smoke）**：
+  - 作者完成 `.env` 後，不揭露真值的布林檢查確認 `gemini-3.5-flash-lite`、medium thinking、主要 API key、F1 與 12B model tag 均已設定；Agent 未列印任何秘密。
+  - 作者明確核准單次 smoke 最高 US$0.00188。首次命令因 per-invocation `max_tokens` 被新版 SDK 視為非法欄位，在建立 HTTP request 前由 Pydantic 本機驗證停止，沒有模型回應或 token usage；依本機 connector 實作改用 SDK request 欄位 `max_output_tokens` 後，只重試一次可計費請求。
+  - 真實結果：model ID 相符、primary key slot 連線成功；模型回傳且只回傳 1 個 `connection_probe` function call，工具名稱與 `{"value": "ok"}` 參數皆完全一致。未執行外部副作用工具。
+  - usage metadata：61 input、56 output、117 total tokens，其中 reasoning 40；依官方標準價 input US$0.30／1M、output US$2.50／1M 推算約 **US$0.0001583**，實際帳單仍以方案與免費額度為準，遠低於核准上限。
+  - 範圍限制：這只證明新模型可透過目前 LangChain connector 連線並產生合法 tool call；不是 S14 完整資格／試算／HITL，也不是新版 20 題成績。後兩者若要執行，必須另行估價與核准。
+  - Git：Agent 未讀取 Git 狀態、未執行任何 Git 指令；沿用建議 commit：`feat(cloud): 遷移至 Gemini 3.5 Flash-Lite`。
+
+- **2026-07-22（本機分組提交，尚未 Push）**：
+  - 作者自行建立 `bea9238 feat(ui): 改善多輪互動與公開展示介面`；7 個檔案，UI 測試 **10 passed**、相關模組 `py_compile` 通過，Author／Committer 均為 `kuotunyu` 的 GitHub noreply email。
+  - 作者自行建立 `e2c01ea fix(agent): 強化確定性工具流程與模型相容性`；11 個檔案，Agent／架構測試 **30 passed**、相關模組 `py_compile` 通過，Author／Committer 同樣正確。
+  - 兩筆 commit 目前只存在本機；尚未執行 `git push`，因此 GitHub 頁面仍顯示遠端舊 commit `eeeae13`，重新整理不會出現本機修改。最後文件 commit 完成後由作者一次 Push。
+  - Agent 未執行任何 Git 指令；所有 Git 證據均來自作者貼回的 PowerShell 輸出。
