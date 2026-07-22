@@ -17,6 +17,7 @@ SHOWCASE_PATH = (
 )
 BASE_URL = os.getenv("UI_SMOKE_URL", "http://127.0.0.1:7860")
 TEST_CONVERSATION = os.getenv("UI_SMOKE_TEST_CONVERSATION") == "1"
+TEST_APPROVAL = os.getenv("UI_SMOKE_TEST_APPROVAL") == "1"
 PUBLISH_SHOWCASE = os.getenv("UI_SMOKE_PUBLISH_SHOWCASE") == "1"
 
 
@@ -32,9 +33,11 @@ def main() -> None:
             if message.type == "error"
             else None,
         )
-        page.goto(BASE_URL, wait_until="networkidle")
+        # Gradio 6 會維持 SSR / queue 連線，頁面可能永遠達不到 networkidle；
+        # 以 DOM 完成後的產品標題作為可互動就緒條件。
+        page.goto(BASE_URL, wait_until="domcontentloaded", timeout=60_000)
         heading = page.get_by_role("heading", name="長照 2.0 資格與補助初步試算")
-        heading.wait_for()
+        heading.wait_for(timeout=60_000)
         assert not page.get_by_text(
             "用對話補齊必要資料；資格與金額由確定性工具計算，報告發布前由你確認。",
             exact=True,
@@ -140,7 +143,32 @@ def main() -> None:
         assert not page.locator("#report-section").is_visible()
         page.screenshot(path=ARTIFACT_DIR / "gradio-mobile.png", full_page=True)
 
-        if TEST_CONVERSATION:
+        if TEST_APPROVAL:
+            page.set_viewport_size({"width": 1440, "height": 1050})
+            situation_input.fill("家人 75 歲，已有正式 CMS 第 4 級，屬一般戶。")
+            page.get_by_role("button", name="開始資格初篩").click()
+            report = page.locator("#report-preview")
+            report.get_by_text("長照服務資格與補助初步建議書", exact=True).wait_for()
+            approve_button = page.get_by_role("button", name="核准並發布")
+            reject_button = page.get_by_role("button", name="拒絕並繼續修正")
+            assert approve_button.is_visible()
+            assert reject_button.is_visible()
+            approve_button.click()
+            approved_status = page.get_by_text(
+                "報告已核准；發布內容與校閱草稿逐字一致。", exact=True
+            )
+            approved_status.wait_for()
+            published_button = page.get_by_role("button", name="已核准並發布")
+            assert published_button.is_visible()
+            assert published_button.is_disabled()
+            assert not reject_button.is_visible()
+            assert report.get_by_text("NT$ 15,120", exact=False).is_visible()
+            assert report.get_by_text("NT$ 2,880", exact=False).is_visible()
+            assert page.get_by_text("common.error", exact=True).count() == 0
+            page.screenshot(
+                path=ARTIFACT_DIR / "gradio-approved.png", full_page=True
+            )
+        elif TEST_CONVERSATION:
             page.set_viewport_size({"width": 1440, "height": 1050})
             situation_input.fill(
                 "我阿公84歲，太老了不能騎機車，只能騎腳踏車，有攝護腺癌"
@@ -256,6 +284,8 @@ def main() -> None:
         print(ARTIFACT_DIR / "gradio-history-expanded.png")
         if PUBLISH_SHOWCASE:
             print(SHOWCASE_PATH)
+    if TEST_APPROVAL:
+        print(ARTIFACT_DIR / "gradio-approved.png")
 
 
 if __name__ == "__main__":

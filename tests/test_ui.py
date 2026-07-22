@@ -299,6 +299,7 @@ def test_demo_builds_without_loading_a_model() -> None:
     demo = build_demo(controller)
     assert isinstance(demo, gr.Blocks)
     config = demo.get_config_file()
+    assert any(component.get("type") == "state" for component in config["components"])
     chatbot = next(
         component
         for component in config["components"]

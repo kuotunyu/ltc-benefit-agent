@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import socket
+from uuid import uuid4
 
 import gradio as gr
 
@@ -401,6 +402,13 @@ body .options li {
 footer { display: none !important; }
 input[type="checkbox"] { accent-color: var(--accent) !important; }
 #approve-button { background: var(--accent) !important; color: #ffffff !important; }
+#approve-button:disabled {
+  opacity: 1 !important;
+  border-color: var(--line-strong) !important;
+  background: var(--accent-soft) !important;
+  color: var(--accent-ink) !important;
+}
+#reject-button:disabled { display: none !important; }
 #reject-button { background: transparent !important; color: #8b2f2f !important; border-color: #b65a5a !important; }
 .status-strip {
   margin: 0;
@@ -488,8 +496,19 @@ def _updates(response: UiResponse):
         response.preview,
         response.details,
         response.sources,
-        gr.update(visible=response.approval_visible),
-        gr.update(visible=response.approval_visible),
+        gr.Button(
+            value=(
+                "核准並發布"
+                if response.approval_visible
+                else "已核准並發布"
+            ),
+            visible=has_report,
+            interactive=response.approval_visible,
+        ),
+        gr.Button(
+            visible=response.approval_visible,
+            interactive=response.approval_visible,
+        ),
         gr.update(value=response.status, visible=has_status),
         gr.update(visible=not has_conversation),
         gr.update(visible=has_conversation and not has_report),
@@ -503,9 +522,9 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
     choices = provider_choices()
     default_provider = choices[0][1]
 
-    def submit_message(text, history, provider, compare_legacy, request: gr.Request):
+    def submit_message(text, history, provider, compare_legacy, session_id):
         response = controller.submit(
-            session_id=request.session_hash or "",
+            session_id=session_id,
             provider_value=provider,
             compare_legacy=compare_legacy,
             text=text,
@@ -513,23 +532,23 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
         )
         return ("", "", *_updates(response))
 
-    def decide_report(decision: str, history, provider, request: gr.Request):
+    def decide_report(decision: str, history, provider, session_id):
         response = controller.decide(
-            session_id=request.session_hash or "",
+            session_id=session_id,
             provider_value=provider,
             decision=decision,
             history=history,
         )
         return _updates(response)
 
-    def approve_report(history, provider, request: gr.Request):
-        return decide_report("approve", history, provider, request)
+    def approve_report(history, provider, session_id):
+        return decide_report("approve", history, provider, session_id)
 
-    def reject_report(history, provider, request: gr.Request):
-        return decide_report("reject", history, provider, request)
+    def reject_report(history, provider, session_id):
+        return decide_report("reject", history, provider, session_id)
 
-    def clear_session(request: gr.Request):
-        controller.clear(request.session_hash or "")
+    def clear_session(session_id):
+        controller.clear(session_id)
         return (
             [],
             "",
@@ -549,6 +568,9 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
         title="長照額度初步試算",
         fill_width=True,
     ) as demo:
+        # request.session_hash 在部分 Space SSR 事件間可能不一致；State 的 callable
+        # 會為每個瀏覽器 session 建立穩定且不可猜測的 thread id。
+        session_id = gr.State(lambda: uuid4().hex)
         gr.HTML(HEADER, elem_classes="header-wrap")
         with gr.Column(elem_classes=["app-shell", "main-surface"]):
             with gr.Column(visible=True, elem_id="onboarding-section") as onboarding_section:
@@ -684,22 +706,22 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
         ]
         start_text.submit(
             submit_message,
-            [start_text, chatbot, provider, compare_legacy],
+            [start_text, chatbot, provider, compare_legacy, session_id],
             submit_outputs,
         )
         start_send.click(
             submit_message,
-            [start_text, chatbot, provider, compare_legacy],
+            [start_text, chatbot, provider, compare_legacy, session_id],
             submit_outputs,
         )
         followup_text.submit(
             submit_message,
-            [followup_text, chatbot, provider, compare_legacy],
+            [followup_text, chatbot, provider, compare_legacy, session_id],
             submit_outputs,
         )
         followup_send.click(
             submit_message,
-            [followup_text, chatbot, provider, compare_legacy],
+            [followup_text, chatbot, provider, compare_legacy, session_id],
             submit_outputs,
         )
         decision_outputs = [
@@ -718,17 +740,17 @@ def build_demo(controller: GradioController | None = None) -> gr.Blocks:
         ]
         approve.click(
             approve_report,
-            [chatbot, provider],
+            [chatbot, provider, session_id],
             decision_outputs,
         )
         reject.click(
             reject_report,
-            [chatbot, provider],
+            [chatbot, provider, session_id],
             decision_outputs,
         )
         clear.click(
             clear_session,
-            inputs=None,
+            inputs=[session_id],
             outputs=decision_outputs,
             queue=False,
         )
