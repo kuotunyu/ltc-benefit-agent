@@ -15,6 +15,7 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import SecretStr
 
 from .config import AgentProvider, AgentSettings
+from .intake import CaseIntakeMiddleware
 from .privacy import SafeAuditLogger, build_pii_middleware
 from .toolset import ToolBundle, build_tool_bundle
 from .workflow import WorkflowContinuationMiddleware
@@ -118,6 +119,7 @@ def build_agent_runtime(
         system_prompt=SYSTEM_PROMPT,
         middleware=[
             *build_pii_middleware(),
+            CaseIntakeMiddleware(),
             ToolRetryMiddleware(
                 max_retries=0,
                 on_failure="continue",

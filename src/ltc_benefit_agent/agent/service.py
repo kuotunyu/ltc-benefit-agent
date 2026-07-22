@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.types import Command
 
 from .factory import AgentRuntime
+from .intake import merge_explicit_case_facts
 from .privacy import redact_text, redact_value
 
 
@@ -20,8 +21,9 @@ _UNVERIFIED_AMOUNT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _UNVERIFIED_AMOUNT_MESSAGE = (
-    "系統已攔截未經確定性報告工具與人工核准的金額敘述。"
-    "請繼續完成報告流程，或改用其他模型重試。"
+    "系統沒有採用模型自行產生、尚未經工具驗證的金額。"
+    "請繼續回答尚未補齊的資料；若要試算，請提供正式 CMS、福利身分類別、"
+    "是否有外籍看護與預計服務費。"
 )
 
 
@@ -60,6 +62,15 @@ class AgentTurnResult:
 
     @property
     def latest_text(self) -> str:
+        preview = self.pending_report_preview
+        if preview is not None:
+            if "CMS 未知：僅提供額度參考" in preview:
+                return (
+                    "資格初篩報告草稿已產生；目前無須再補原住民、身障、失智或 PAC "
+                    "資料。因 CMS 未知，目前只提供額度參考與 1966 申請指引。"
+                    "請檢查草稿後決定是否核准。"
+                )
+            return "補助試算報告草稿已產生，請檢查資格與金額後決定是否核准。"
         messages = self.state.get("messages", [])
         for message in reversed(messages):
             if isinstance(message, BaseMessage) and message.type in {"ai", "tool"}:
@@ -105,12 +116,25 @@ class BenefitAgentService:
 
     def send_message(self, thread_id: str, text: str) -> AgentTurnResult:
         sanitized = redact_text(text)
+        config = self._config(thread_id)
+        snapshot = self.runtime.graph.get_state(config)
+        previous = getattr(snapshot, "values", {})
+        previous = previous if isinstance(previous, Mapping) else {}
+        eligibility, copay = merge_explicit_case_facts(
+            sanitized,
+            previous_eligibility=previous.get("case_explicit_eligibility_facts"),
+            previous_copay=previous.get("case_explicit_copay_facts"),
+        )
         self.runtime.audit.record(
             "user_turn", payload={"thread_id": thread_id, "character_count": len(sanitized)}
         )
         result = self.runtime.graph.invoke(
-            {"messages": [{"role": "user", "content": sanitized}]},
-            config=self._config(thread_id),
+            {
+                "messages": [{"role": "user", "content": sanitized}],
+                "case_explicit_eligibility_facts": eligibility,
+                "case_explicit_copay_facts": copay,
+            },
+            config=config,
             version="v2",
         )
         normalized = self._normalize_result(thread_id, result)
@@ -156,5 +180,7 @@ class BenefitAgentService:
         return AgentTurnResult(
             thread_id=thread_id,
             state=state,
-            interrupts=normalized.interrupts,
+            # resume 後的人類決策已完成；部分 provider adapter 仍會回帶歷史
+            # interrupt metadata，不應讓它覆蓋剛附上的逐字核准報告。
+            interrupts=(),
         )

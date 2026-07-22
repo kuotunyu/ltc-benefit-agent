@@ -20,6 +20,12 @@ TEMPLATE """{{- if or .System .Tools }}<start_of_turn>user
 <tool_call>
 {"name": "工具名稱", "arguments": {"參數": "值"}}
 </tool_call>
+{{- if eq (len .Tools) 1 }}
+
+目前 runtime 只提供一個工具，代表上一個純文字回應沒有完成必要步驟。
+這一輪不得輸出說明、拒答或追問；必須直接用上述 <tool_call> 格式呼叫唯一工具，
+並依 system 與 user 已提供的資料填入 arguments。未知值維持 null，不得自行猜測。
+{{- end }}
 {{- end }}<end_of_turn>
 {{- end }}
 {{- range $i, $_ := .Messages }}

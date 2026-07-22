@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import re
 from enum import StrEnum
 from typing import Any, NotRequired
 from uuid import uuid4
@@ -29,12 +30,17 @@ class WorkflowGuardState(AgentState):
 
 
 class _WorkflowStage(StrEnum):
+    ELIGIBILITY_RECHECK = "ELIGIBILITY_RECHECK"
     ELIGIBILITY_READY = "ELIGIBILITY_READY"
     COPAY_READY = "COPAY_READY"
     DRAFT_READY = "DRAFT_READY"
 
 
 _MAX_NUDGES_PER_INVOCATION = 3
+
+_EXPLICIT_CMS_PATTERN = re.compile(
+    r"(?<![A-Za-z])CMS\s*(?:等級)?\s*[:：]?\s*[2-8](?!\d)", re.IGNORECASE
+)
 
 _STAGE_PROMPTS = {
     _WorkflowStage.COPAY_READY: (
@@ -88,6 +94,15 @@ def _latest_tool_call_args(
     messages: list[BaseMessage], tool_name: str
 ) -> dict[str, Any] | None:
     for message in reversed(_current_turn(messages)):
+        if not isinstance(message, ToolMessage) or message.name != tool_name:
+            continue
+        artifact = message.artifact
+        if not isinstance(artifact, dict):
+            continue
+        args = artifact.get("validated_arguments")
+        if isinstance(args, dict):
+            return dict(args)
+    for message in reversed(_current_turn(messages)):
         if not isinstance(message, AIMessage):
             continue
         for tool_call in reversed(message.tool_calls):
@@ -120,6 +135,14 @@ def _explicit_compare_legacy(messages: list[BaseMessage]) -> bool:
             "2022" in text and any(keyword in text for keyword in ("比較", "並列"))
         )
     return False
+
+
+def _human_provided_explicit_cms(messages: list[BaseMessage]) -> bool:
+    return any(
+        isinstance(message, HumanMessage)
+        and _EXPLICIT_CMS_PATTERN.search(_message_text(message))
+        for message in messages
+    )
 
 
 def _build_report_tool_call(
@@ -230,6 +253,13 @@ def _next_stage(
 
         official_cms_level = payload.get("official_cms_level")
         if official_cms_level is None:
+            if _human_provided_explicit_cms(messages):
+                return (
+                    _WorkflowStage.ELIGIBILITY_RECHECK,
+                    "資料一致性檢查：使用者訊息已明確提供正式 CMS 2–8，但剛才的 "
+                    "eligibility_check 漏傳 official_cms_level。請先依原文重新呼叫 "
+                    "eligibility_check，並保留所有已知欄位；不得建立 CMS 未知報告。",
+                )
             return (
                 _WorkflowStage.ELIGIBILITY_READY,
                 "流程續跑檢查：eligibility_check 已完成，但沒有正式 CMS。請立即呼叫 "

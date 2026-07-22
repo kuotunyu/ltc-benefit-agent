@@ -49,12 +49,19 @@ COMPLETE_REPORT_ARGS: dict[str, Any] = {
     "compare_legacy": False,
 }
 
+COMPLETE_REPORT_USER_TEXT = (
+    "家人 70 歲，不是原住民，沒有身障證明、沒有失智診斷，也不是 PAC；"
+    "生活需要協助已 12 個月，住家裡。正式 CMS 2，第三類，沒有外籍看護，"
+    "預計每月服務費 20000 元。"
+)
+
 
 class ScriptedBenefitModel(BaseChatModel):
     """不含自然語言推理，只用來驗證 LangGraph tool/HITL wiring。"""
 
     seen_batches: list[tuple[BaseMessage, ...]] = Field(default_factory=list)
     bound_tool_names: list[str] = Field(default_factory=list)
+    escape_publish_markdown: bool = False
 
     @property
     def _llm_type(self) -> str:
@@ -137,6 +144,9 @@ class ScriptedBenefitModel(BaseChatModel):
             )
         elif isinstance(last, ToolMessage) and last.name == "build_report_draft":
             draft = json.loads(str(last.content))
+            report_markdown = draft["markdown"]
+            if self.escape_publish_markdown:
+                report_markdown = report_markdown.replace("\n", "\\n")
             message = AIMessage(
                 content="",
                 tool_calls=[
@@ -144,7 +154,7 @@ class ScriptedBenefitModel(BaseChatModel):
                         "name": "publish_report",
                         "args": {
                             "report_id": draft["report_id"],
-                            "report_markdown": draft["markdown"],
+                            "report_markdown": report_markdown,
                         },
                         "id": "call-4",
                     }
@@ -179,6 +189,72 @@ class ScriptedQuestionModel(BaseChatModel):
         user_turns = sum(isinstance(message, HumanMessage) for message in messages)
         content = "請問家人的年齡？" if user_turns == 1 else "是否具有原住民身分？"
         return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
+
+
+class InitialEligibilityRetryModel(BaseChatModel):
+    """第一次只回文字；收到有界 retry prompt 後才由模型產生 tool call。"""
+
+    call_count: int = 0
+    saw_retry_prompt: bool = False
+    bound_tool_batches: list[tuple[str, ...]] = Field(default_factory=list)
+    tool_choices: list[Any] = Field(default_factory=list)
+    retry_human_messages: list[str] = Field(default_factory=list)
+
+    @property
+    def _llm_type(self) -> str:
+        return "initial-eligibility-retry-test-model"
+
+    def bind_tools(
+        self, tools: Sequence[BaseTool | dict[str, Any]], **kwargs: Any
+    ) -> "InitialEligibilityRetryModel":
+        self.bound_tool_batches.append(
+            tuple(
+                tool.name if isinstance(tool, BaseTool) else str(tool.get("name"))
+                for tool in tools
+            )
+        )
+        self.tool_choices.append(kwargs.get("tool_choice"))
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del stop, run_manager, kwargs
+        self.call_count += 1
+        system_text = "\n".join(
+            str(message.content)
+            for message in messages
+            if isinstance(message, SystemMessage)
+        )
+        last = messages[-1]
+        if isinstance(last, HumanMessage) and "INITIAL_ELIGIBILITY_TOOL_RETRY" in system_text:
+            self.saw_retry_prompt = True
+            self.retry_human_messages.append(str(last.content))
+            message = AIMessage(
+                content=(
+                    "```tool_call\n"
+                    '{"name":"eligibility_check","arguments":{'
+                    '"age":49,"indigenous":false,'
+                    '"has_disability_certificate":false,'
+                    '"has_dementia_diagnosis":false,"is_pac_case":false,'
+                    '"has_functional_impairment":true,'
+                    '"impairment_duration_months":8,'
+                    '"residence_status":"COMMUNITY",'
+                    '"official_cms_level":null,'
+                    '"rule_version":"CURRENT_2026_07"}}\n```'
+                )
+            )
+        elif isinstance(last, HumanMessage):
+            message = AIMessage(content="請先補充需要的資格初篩資料。")
+        elif isinstance(last, ToolMessage):
+            message = AIMessage(content="資格初篩工具已完成。")
+        else:  # pragma: no cover - exposes unexpected graph transitions
+            raise AssertionError(f"unexpected last message: {last!r}")
+        return ChatResult(generations=[ChatGeneration(message=message)])
 
 
 class PrematureStoppingModel(BaseChatModel):
@@ -400,6 +476,109 @@ class UnknownCmsStoppingModel(BaseChatModel):
         return ChatResult(generations=[ChatGeneration(message=message)])
 
 
+class CrossTurnSkippingModel(BaseChatModel):
+    """模擬小模型忘記舊欄位，並在第二輪過早跳到金額工具。"""
+
+    @property
+    def _llm_type(self) -> str:
+        return "cross-turn-skipping-test-model"
+
+    def bind_tools(
+        self, tools: Sequence[BaseTool | dict[str, Any]], **kwargs: Any
+    ) -> "CrossTurnSkippingModel":
+        del tools, kwargs
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del stop, run_manager, kwargs
+        last = messages[-1]
+        if isinstance(last, HumanMessage):
+            turn_count = sum(isinstance(message, HumanMessage) for message in messages)
+            if turn_count == 1:
+                message = AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "eligibility_check",
+                            "args": {"age": 65},
+                            "id": "intake-first-eligibility",
+                        }
+                    ],
+                )
+            else:
+                message = AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "copay_estimate",
+                            "args": {
+                                "cms_level": 2,
+                                "welfare_category": "THIRD",
+                                "has_foreign_caregiver": False,
+                                "planned_spend": 10_000,
+                            },
+                            "id": "intake-premature-copay",
+                        }
+                    ],
+                )
+        elif isinstance(last, ToolMessage) and last.status == "error":
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "eligibility_check",
+                        # 刻意不再傳 age，middleware 必須保留第一輪已知值。
+                        "args": {
+                            "indigenous": False,
+                            "has_disability_certificate": False,
+                            "has_dementia_diagnosis": False,
+                            "is_pac_case": False,
+                            "has_functional_impairment": True,
+                            # 刻意誤讀；middleware 必須以明確的「6 個月」校正。
+                            "impairment_duration_months": 60,
+                            "residence_status": "COMMUNITY",
+                            # 刻意漏掉明確的「CMS 2」。
+                            "official_cms_level": None,
+                        },
+                        "id": "intake-second-eligibility",
+                    }
+                ],
+            )
+        elif isinstance(last, ToolMessage) and last.name == "eligibility_check":
+            payload = json.loads(str(last.content))
+            if payload["status"] == "INSUFFICIENT_INFORMATION":
+                message = AIMessage(content="")
+            else:
+                message = AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "copay_estimate",
+                            "args": {
+                                "cms_level": 2,
+                                "welfare_category": "THIRD",
+                                "has_foreign_caregiver": False,
+                                "planned_spend": 10_000,
+                            },
+                            "id": "intake-valid-copay",
+                        }
+                    ],
+                )
+        elif isinstance(last, ToolMessage) and last.name == "copay_estimate":
+            message = AIMessage(content="")
+        elif isinstance(last, ToolMessage) and last.name == "build_report_draft":
+            message = AIMessage(content="")
+        else:  # pragma: no cover - exposes unexpected graph transitions
+            raise AssertionError(f"unexpected last message: {last!r}")
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 def settings() -> AgentSettings:
     return AgentSettings(
         provider=AgentProvider.GEMINI,
@@ -428,7 +607,7 @@ def test_unapproved_model_money_is_blocked_but_published_report_is_returned() ->
         (),
     )
     assert "1,920" not in unsafe.latest_text
-    assert "未經確定性報告工具" in unsafe.latest_text
+    assert "尚未經工具驗證" in unsafe.latest_text
 
     report = "# 已核准報告\n\n合計自付 NT$ 1,920"
     published = AgentTurnResult(
@@ -474,13 +653,16 @@ def test_full_create_agent_flow_masks_pii_and_waits_for_exact_approval() -> None
     runtime = build_agent_runtime(settings=settings(), model=model, audit=audit)
     service = BenefitAgentService(runtime)
 
-    pii = "我叫王小明，A123456789，電話 0912-345-678。其餘資料已填好。"
+    pii = "我叫王小明，A123456789，電話 0912-345-678。" + COMPLETE_REPORT_USER_TEXT
     pending = service.send_message("thread-a", pii)
 
     assert pending.awaiting_approval
     preview = pending.pending_report_preview
     assert preview is not None, repr(pending.interrupts)
     assert preview.startswith("# 長照服務資格與補助初步建議書")
+    assert pending.latest_text == (
+        "補助試算報告草稿已產生，請檢查資格與金額後決定是否核准。"
+    )
     assert "NT$ 10,020" in preview
     assert "NT$ 1,603" in preview
     assert "NT$ 11,583" in preview
@@ -513,13 +695,30 @@ def test_full_create_agent_flow_masks_pii_and_waits_for_exact_approval() -> None
     assert "human_decision" in log_text
 
 
+def test_publish_call_uses_exact_draft_when_adapter_reescapes_newlines() -> None:
+    model = ScriptedBenefitModel(escape_publish_markdown=True)
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=model)
+    )
+
+    pending = service.send_message("thread-reescaped-publish", COMPLETE_REPORT_USER_TEXT)
+
+    assert pending.awaiting_approval
+    preview = pending.pending_report_preview
+    assert preview is not None
+    assert "\n## 資格初篩" in preview
+    assert "\\n## 資格初篩" not in preview
+    approved = service.decide("thread-reescaped-publish", "approve")
+    assert approved.latest_text == preview
+
+
 def test_workflow_guard_continues_three_stalled_stages_until_hitl() -> None:
     model = PrematureStoppingModel()
     service = BenefitAgentService(
         build_agent_runtime(settings=settings(), model=model)
     )
 
-    pending = service.send_message("thread-workflow-guard", "完整資料已提供")
+    pending = service.send_message("thread-workflow-guard", COMPLETE_REPORT_USER_TEXT)
 
     assert pending.awaiting_approval
     assert pending.pending_report_preview is not None
@@ -544,7 +743,11 @@ def test_workflow_guard_builds_reference_report_without_guessing_unknown_cms() -
         build_agent_runtime(settings=settings(), model=UnknownCmsStoppingModel())
     )
 
-    pending = service.send_message("thread-unknown-cms-guard", "尚未做 CMS 評估")
+    pending = service.send_message(
+        "thread-unknown-cms-guard",
+        "家人 70 歲，不是原住民，沒有身障或失智，也不是 PAC；"
+        "生活需要協助已 8 個月，住家裡，尚未做 CMS 評估。",
+    )
 
     assert pending.awaiting_approval
     preview = pending.pending_report_preview
@@ -553,10 +756,12 @@ def test_workflow_guard_builds_reference_report_without_guessing_unknown_cms() -
     assert "不做個人化試算，也不從描述猜級" in preview
     assert "| 8 | NT$ 36,180 | NT$ 10,854 |" in preview
     assert "政府給付" not in preview
+    assert "CMS 未知" in pending.latest_text
+    assert "1966" in pending.latest_text
     assert pending.state["workflow_guard_nudge_count"] == 2
 
 
-def test_workflow_guard_does_not_override_missing_information_followup() -> None:
+def test_intake_guard_returns_deterministic_missing_information_followup() -> None:
     model = InsufficientEligibilityModel()
     service = BenefitAgentService(
         build_agent_runtime(settings=settings(), model=model)
@@ -565,9 +770,128 @@ def test_workflow_guard_does_not_override_missing_information_followup() -> None
     result = service.send_message("thread-missing-information", "家人 70 歲")
 
     assert not result.awaiting_approval
-    assert result.latest_text == "請問日常生活是否需要他人協助？"
+    assert "需要他人協助" in result.latest_text
+    assert "住家裡" in result.latest_text
+    assert "正式 CMS" in result.latest_text
     assert result.state["workflow_guard_nudge_count"] == 0
     assert model.call_count == 2
+
+
+def test_intake_guard_reprompts_model_once_for_missing_initial_tool_call() -> None:
+    model = InitialEligibilityRetryModel()
+    audit = SafeAuditLogger()
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=model, audit=audit)
+    )
+
+    result = service.send_message(
+        "thread-initial-tool-retry",
+        "家人 49 歲，不是原住民，沒有身障或失智，也不是 PAC；"
+        "生活需要協助已 8 個月，住家裡，尚未做 CMS 評估。",
+    )
+
+    eligibility_calls = [
+        event
+        for event in audit.snapshot()
+        if event.event == "tool_call" and event.tool_name == "eligibility_check"
+    ]
+    assert model.saw_retry_prompt
+    assert model.call_count >= 2
+    assert ("eligibility_check",) in model.bound_tool_batches
+    retry_index = model.bound_tool_batches.index(("eligibility_check",))
+    assert model.tool_choices[retry_index] == "eligibility_check"
+    assert model.retry_human_messages == [
+        "請依 system 提供的結構化欄位，立即呼叫唯一的 eligibility_check 工具；"
+        "不要輸出其他文字。"
+    ]
+    assert len(eligibility_calls) == 1
+    assert eligibility_calls[0].payload["age"] == 49
+    assert eligibility_calls[0].payload["has_dementia_diagnosis"] is False
+    assert eligibility_calls[0].payload["impairment_duration_months"] == 8
+    assert result.awaiting_approval
+    assert result.pending_report_preview is not None
+    assert "PRELIMINARY_CRITERIA_NOT_MET" in result.pending_report_preview
+
+
+def test_intake_guard_does_not_force_initial_tool_for_single_fact() -> None:
+    model = InitialEligibilityRetryModel()
+    audit = SafeAuditLogger()
+    service = BenefitAgentService(
+        build_agent_runtime(settings=settings(), model=model, audit=audit)
+    )
+
+    result = service.send_message("thread-no-initial-tool-retry", "家人 49 歲")
+
+    assert not model.saw_retry_prompt
+    assert model.call_count == 1
+    assert result.latest_text == "請先補充需要的資格初篩資料。"
+    assert not any(
+        event.event == "tool_call" and event.tool_name == "eligibility_check"
+        for event in audit.snapshot()
+    )
+
+
+def test_intake_guard_keeps_cross_turn_facts_and_blocks_premature_copay() -> None:
+    audit = SafeAuditLogger()
+    service = BenefitAgentService(
+        build_agent_runtime(
+            settings=settings(), model=CrossTurnSkippingModel(), audit=audit
+        )
+    )
+
+    first = service.send_message("thread-intake-guard", "家人剛滿 65 歲，能試算嗎？")
+
+    assert not first.awaiting_approval
+    assert "需要協助" in first.latest_text
+    assert "正式 CMS" in first.latest_text
+
+    pending = service.send_message(
+        "thread-intake-guard",
+        "不是原住民、沒有身障或失智、不是 PAC；失能 6 個月，住家裡。"
+        "正式 CMS 2，第三類，沒有外籍看護，預計每月服務費 10000 元。",
+    )
+
+    assert pending.awaiting_approval
+    assert pending.pending_report_preview is not None
+    assert "NT$ 8,400" in pending.pending_report_preview
+    assert pending.state["case_explicit_eligibility_facts"] == {
+        "age": 65,
+        "indigenous": False,
+        "has_disability_certificate": False,
+        "has_dementia_diagnosis": False,
+        "is_pac_case": False,
+        "has_functional_impairment": True,
+        "impairment_duration_months": 6,
+        "residence_status": "COMMUNITY",
+        "official_cms_level": 2,
+        "rule_version": "CURRENT_2026_07",
+    }
+    assert pending.state["case_explicit_copay_facts"] == {
+        "cms_level": 2,
+        "welfare_category": "THIRD",
+        "has_foreign_caregiver": False,
+        "planned_spend": 10_000,
+        "rule_version": "CURRENT_2026_07",
+    }
+    calls = [
+        event
+        for event in audit.snapshot()
+        if event.event == "tool_call" and event.tool_name is not None
+    ]
+    eligibility_calls = [
+        event.payload for event in calls if event.tool_name == "eligibility_check"
+    ]
+    assert len(eligibility_calls) == 2
+    assert eligibility_calls[-1]["age"] == 65
+    assert eligibility_calls[-1]["official_cms_level"] == 2
+    assert eligibility_calls[-1]["impairment_duration_months"] == 6
+    assert eligibility_calls[-1]["residence_status"] == "COMMUNITY"
+    assert [event.tool_name for event in calls] == [
+        "eligibility_check",
+        "eligibility_check",
+        "copay_estimate",
+        "build_report_draft",
+    ]
 
 
 def test_reject_does_not_publish_report() -> None:
@@ -576,7 +900,7 @@ def test_reject_does_not_publish_report() -> None:
     service = BenefitAgentService(
         build_agent_runtime(settings=settings(), model=model, audit=audit)
     )
-    pending = service.send_message("thread-reject", "資料已填好")
+    pending = service.send_message("thread-reject", COMPLETE_REPORT_USER_TEXT)
     assert pending.awaiting_approval
 
     rejected = service.decide("thread-reject", "reject")
