@@ -2,8 +2,9 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 0–4、規則人工校對 5／5、GitHub 公開倉庫與 Hugging Face Space 均完成；常駐多輪聊天、CMS 白話說明、unknown CMS 防誤判、已知 CMS 金額試算與 HITL 核准都已通過公開端到端驗收。
-- **本次完成**：作者建立並 Push annotated tag `phase-4`，再以該 tag 發布 GitHub Release；Release 指向 `2669eec` 且標示 `Latest`。README 已同步線上操作、Release 與原始碼入口。
+- **現在做到哪**：Phase 0–4 已公開完成；v0.2 定位為「法規更新監測與人工校對版」。v0.2-P0 已由作者驗收通過，尚未開始 P1 實作。
+- **本次完成**：PLAN 新增 D46–D49 與 v0.2-P0–P4；建立 `docs/research/rule-source-manifest.md`，鎖定 manifest／result schema 與三態語意；新增 `audit-rule-snapshot` skill；作者已確認 P0 契約並核准進入 P1。
+- **v0.2-P0 證據**：依 `skill-creator/init_skill.py` 初始化，`quick_validate.py` 輸出 `Skill is valid!`；佔位文案掃描 0 命中。這一輪沒有抓官方來源、沒有新增 checker、沒有修改資格或金額。
 - **實跑總證據**：本次 `uv lock --check` 成功、完整 pytest **514 passed in 3.12s**；既有 `uv pip check`、sdist／wheel build 與離線 CLI approve 均成功，功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 的 GitHub Actions 均成功。
 - **Context7**：以 `/websites/langchain_oss_python` 再確認 `AgentMiddleware.state_schema`、`ModelRequest.override` 與 `wrap_tool_call` 的現行介面後實作雙層 guard；既有 Gradio 查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
@@ -11,12 +12,12 @@
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 將目前版本視為穩定公開基線；後續需求另開 v0.2 主線，不回寫 `phase-4` tag。
-  2. 若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限；這是可選評估，不阻擋目前版本。
-- **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
-- **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：本輪文件同步完成後，由作者自行檢查、提交並 Push；Agent 不執行任何 Git 指令。
-- **⚠️ 已知坑**：CMS 範圍文字不能用單一等級 regex 截取；Space SSR 不宜用 `request.session_hash` 作跨事件唯一鍵；Gradio 6 對事件來源 Button 的 `visible=False` 不可靠；福利類別與版本比較仍須走確定性正規化；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
+  1. 由作者先自行提交並同步 v0.2-P0 文件與 skill。
+  2. 收到作者「開始 v0.2-P1」指示後，實作確定性來源 checker、離線 fixture 與第一次線上 smoke。
+- **成本**：v0.2-P0 新增成本 US$0，沒有模型或付費 API 呼叫。既有新版雲端 20 題上限 US$1.776，仍未核准或執行，也不阻擋 v0.2。
+- **待使用者人工處理**：P0 已驗收；尚不需要操作 Space Secrets。P1 第一次線上來源查證完成後，再由作者人工檢閱稽核結果。
+- **待使用者 Git 操作**：自行檢查、commit 並 Push v0.2-P0 產物；Agent 不執行任何 Git 指令。
+- **⚠️ 已知坑**：官方頁面 bytes 改變不等於規則語意改變；`CHECK_UNAVAILABLE` 不能當通過；checker 永不自動改常數；既有 CMS／Space／評估限制仍見 Phase 日誌；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
 
@@ -569,3 +570,23 @@
   - README 測試徽章由過時的 498 更新為最終 514，並加入公開 Space、Phase 4 Release 與 GitHub 原始碼入口；完成度稽核與發布清單同步移除已完成的 tag／Release 待辦。
   - 實跑證據：`uv lock --check` 成功、完整 pytest **514 passed in 3.12s**、四份異動 Markdown 無行尾空白；GitHub Release 與公開 Space 均回應 HTTP 200。
   - 沒有修改資格、額度、Agent 或 UI 邏輯；沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git。建議 commit：`docs: 同步 Phase 4 Release 與公開入口`。
+
+### v0.2-P0 — 文件、契約與稽核 skill（工程完成，待作者驗收）
+
+- **2026-07-23（計畫核准與工程驗證）**：
+  - 作者核准 v0.2 以「法規更新監測與人工校對」為主線；不擴張新補助服務種類，不回寫既有 `phase-4` 歷史基線。
+  - PLAN 新增 D46–D49、`RuleSourceManifest`／`RuleAuditResult` 契約、P0–P4 DoD、非目標與 US$0 預設成本邊界。
+  - `docs/research/rule-source-manifest.md` 定義 manifest／result 欄位、raw SHA-256 與 semantic fingerprint 的差異、人工 gate，以及 `VERIFIED_SNAPSHOT`／`REVIEW_REQUIRED`／`CHECK_UNAVAILABLE` 三態。
+  - 依 `skill-creator` 初始化 `.claude/skills/audit-rule-snapshot/`；skill 明令只接受官方白名單來源、不以 LLM 判規則、不自動修改常數、不執行 Git。
+  - 實跑證據：`quick_validate.py` 輸出 `Skill is valid!`；skill／PLAN／契約文件的 TODO 掃描 0 命中。P0 沒有抓取官方來源、沒有呼叫模型或付費 API、沒有讀取 `.env`、沒有修改 runtime／規則／測試。
+  - Phase gate：工程項目完成，最後一項仍是作者檢閱與核准；未獲核准前不得開始 P1。
+  - Git：Agent 未執行任何 Git 指令。作者驗收後建議 commit：`docs(v0.2): 建立法規快照稽核計畫與 skill`；P0 不建立 tag。
+  - 實際成本：US$0。
+
+### v0.2-P0 — 作者驗收通過
+
+- **2026-07-23（Phase gate）**：
+  - 作者明確回覆「v0.2-P0 驗收通過」；PLAN 最後一項 P0 DoD 已勾選。
+  - P0 正式完成並核准進入 P1；本次只同步文件狀態，尚未建立 checker、抓取官方來源或修改規則常數。
+  - Git：Agent 未執行任何 Git 指令。建議 commit：`docs(v0.2): 建立法規快照稽核計畫與 skill`；P0 不建立 tag。
+  - 實際成本：US$0。

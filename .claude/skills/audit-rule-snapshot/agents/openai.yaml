@@ -1,0 +1,4 @@
+interface:
+  display_name: "稽核法規快照"
+  short_description: "Verify official rule snapshots and prepare human review evidence"
+  default_prompt: "Use $audit-rule-snapshot to compare official rule sources with the approved snapshot without changing rule constants."
