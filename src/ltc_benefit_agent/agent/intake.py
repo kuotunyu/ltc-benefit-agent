@@ -42,7 +42,7 @@ _FIELD_LABELS = {
     "has_functional_impairment": "洗澡、穿衣、吃飯、起身走動或如廁是否需要他人協助",
     "impairment_duration_months": "上述失能或需要協助已持續幾個月",
     "residence_status": "目前住家裡、團體家屋或住宿式機構",
-    "official_cms_level": "是否已有照管中心正式 CMS 2–8 等級",
+    "official_cms_level": "是否已有照管中心正式核定的長照需要等級（CMS 第 2–8 級；不知道可直接回答不知道）",
 }
 
 _BLOCKED_STATUS = "BLOCKED_UNTIL_ELIGIBILITY_COMPLETE"
@@ -927,11 +927,15 @@ def _missing_followup(messages: list[BaseMessage], payload: dict[str, Any]) -> s
     latest_user = _latest_human_text(messages)
     if "CMS" in latest_user.upper() or "試算" in latest_user:
         question += (
-            "若已有正式 CMS，也請一併說明福利身分類別、是否有外籍看護與預計服務費；"
+            "若已有正式 CMS（照管中心核定的長照需要等級，第 2–8 級），也請一併說明"
+            "福利身分類別、是否有外籍看護與預計服務費；"
             "尚未評估可直接說不知道。"
         )
     else:
-        question += "若已有正式 CMS 也可一併提供；尚未評估可直接說不知道。"
+        question += (
+            "若已有正式 CMS（照管中心核定的長照需要等級，第 2–8 級）也可一併提供；"
+            "尚未評估可直接說不知道。"
+        )
     return question
 
 

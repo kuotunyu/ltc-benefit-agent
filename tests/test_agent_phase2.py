@@ -844,10 +844,11 @@ def test_workflow_guard_builds_reference_report_without_guessing_unknown_cms() -
     preview = pending.pending_report_preview
     assert preview is not None
     assert "CMS 未知：僅提供額度參考" in preview
+    assert "CMS 是照管中心評估後核定的長照需要等級" in preview
     assert "不做個人化試算，也不從描述猜級" in preview
     assert "| 8 | NT$ 36,180 | NT$ 10,854 |" in preview
     assert "政府給付" not in preview
-    assert "CMS 未知" in pending.latest_text
+    assert "CMS（照管中心核定的長照需要等級）" in pending.latest_text
     assert "1966" in pending.latest_text
     assert pending.state["workflow_guard_nudge_count"] == 2
 
@@ -932,6 +933,8 @@ def test_intake_guard_returns_deterministic_missing_information_followup() -> No
     assert "需要他人協助" in result.latest_text
     assert "住家裡" in result.latest_text
     assert "正式 CMS" in result.latest_text
+    assert "長照需要等級" in result.latest_text
+    assert "尚未評估可直接說不知道" in result.latest_text
     assert result.state["workflow_guard_nudge_count"] == 0
     assert model.call_count == 2
 
@@ -1113,6 +1116,7 @@ def test_unknown_cms_only_renders_reference_table() -> None:
         planned_spend=20_000,
     )
     assert "CMS 未知：僅提供額度參考" in report
+    assert "CMS 是照管中心評估後核定的長照需要等級" in report
     assert "不做個人化試算" in report
     assert "| 8 | NT$ 36,180 | NT$ 10,854 |" in report
     assert "居家照顧服務以外之照顧組合" in report
