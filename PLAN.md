@@ -75,6 +75,10 @@
 | D43 | 2026-07-23 | 以單一常駐聊天面板取代「最新問題卡＋折疊完整紀錄」：使用者與系統訊息直接以 bubble transcript 顯示，回答欄整合在對話下緣，更新後自動捲至最新訊息並聚焦輸入 | 作者實測仍需手動展開紀錄才能理解上下文，與一般聊天產品的操作模型不一致；直接呈現完整對話可移除重複層級，讓「閱讀最新訊息 → 在下方回答」成為唯一主要路徑 |
 | D44 | 2026-07-23 | 進入多輪對話後，聊天面板頂端仍保留精簡的「照這 4 步操作」提示；桌面橫向排列，窄螢幕改為 2×2，初始頁完整說明維持不變 | 常駐聊天解決了上下文問題，但移除完整說明後也失去操作定位；精簡提示可持續提醒閱讀、回答、允許不知道與報告確認四個節點，又不重新引入大型教學卡 |
 | D45 | 2026-07-23 | 精簡提示採用低彩度導覽面板、狀態點與四張編號步驟卡；維持 18 px 桌面文字、17 px 手機文字，不加入圖示庫或動畫 | 純文字橫排在較窄桌面會產生不規則斷行；結構化編號與一致卡片能提升掃讀性，同時延續產品既有的平靜、可信與無裝飾風格 |
+| D46 | 2026-07-23 | v0.2 聚焦法規來源新鮮度、差異證據與人工校對，不擴張新的補助服務種類 | v1 已完成公開可用基線；下一個最高風險是規則快照隨官方修正而過期 |
+| D47 | 2026-07-23 | 來源 checker 只偵測與報告差異，永不自動修改資格、額度或部分負擔常數 | 官方頁面或附件改變仍需判斷是否影響業務規則；自動寫入會破壞可稽核與人工簽核邊界 |
+| D48 | 2026-07-23 | 法規稽核只使用 `VERIFIED_SNAPSHOT`、`REVIEW_REQUIRED`、`CHECK_UNAVAILABLE` 三種狀態；無法取得來源不得視為通過 | 區分「內容一致」、「需要複核」與「根本未完成檢查」，避免網路錯誤造成錯誤安全感 |
+| D49 | 2026-07-23 | 規則核心測試維持完全離線；線上稽核另行執行，runtime 不因每次民眾請求抓取官方網站 | 保留測試可重現性與服務可用性，也避免官方網站短暫異常影響民眾操作 |
 
 ## 公開介面與計算契約
 
@@ -116,6 +120,14 @@ total_out_of_pocket = copay + overage
 
 - `FaqSearchResult`：法規名稱、條號、短摘錄、官方 URL、資料版本；不參與資格或金額計算。
 - `AgentProvider`：Gemini 雲端、F1 Ollama、Gemma 3 12B baseline；實際模型字串一律由 `.env` 載入。
+
+### v0.2 法規來源稽核契約
+
+- `RuleSourceManifest`：保存來源 ID、官方 canonical URL、適用規則版本、生效日、查證日、raw SHA-256、semantic fingerprint、extractor 版本與受影響規則 ID。
+- `RuleAuditStatus`：只允許 `VERIFIED_SNAPSHOT`、`REVIEW_REQUIRED`、`CHECK_UNAVAILABLE`。
+- `RuleAuditResult`：保存實際取得結果、結構化差異、錯誤與 `writes_performed=false`；不得攜帶個資、秘密或原始對話。
+- raw SHA-256 改變只能證明檔案 bytes 不同；只有確定性 extractor 的必要欄位比較能支撐語意一致或需複核的結論。
+- 完整 schema、狀態語意與人工簽核邊界見 `docs/research/rule-source-manifest.md`。
 
 ## Agent 資料流
 
@@ -222,6 +234,60 @@ DoD：
 - [x] 三個案例涵蓋高齡者、原住民及 50 歲以下失智者的舊現制差異。
 - [x] README 含第一人稱動機、Mermaid、模型對照、快速開始、評估、成本、PII、資料授權與免責聲明。
 - [x] 完整 pytest、CLI、Gradio 瀏覽器驗收通過；由作者自行進行 Git／託管帳號操作。
+
+### v0.2-P0 — 文件、契約與稽核 skill
+
+交付：
+
+- 鎖定 v0.2 非目標、來源 manifest schema、三態稽核語意與人工簽核 gate。
+- 新增 `audit-rule-snapshot` project skill；保持精簡，詳細契約留在 PLAN 與 research 文件。
+- 只修改文件與 skill，不新增 checker 程式、不抓取官方來源、不改規則常數。
+
+DoD：
+
+- [x] PLAN 記錄 D46–D49、v0.2 公開契約、P0–P4 階段與成本／風險。
+- [x] `docs/research/rule-source-manifest.md` 明定 manifest／result schema 與狀態判準。
+- [x] `audit-rule-snapshot` 無佔位文案，且明令禁止自動修改規則與執行 Git。
+- [x] `quick_validate.py` 通過，PROGRESS 記錄實跑證據與 US$0 成本。
+- [x] 作者檢閱全部 P0 產物並核准進入 v0.2-P1。
+
+### v0.2-P1 — 確定性來源 checker
+
+- 建立版本化 manifest、官方 URL 白名單、離線 fixture 與確定性 extractor。
+- 產生 raw SHA-256、semantic fingerprint、結構化差異與三態 `RuleAuditResult`。
+- 線上查證是明確操作，不加入民眾 runtime；規則檔保持唯讀。
+
+DoD：離線 fixture 可穩定重現「一致／需複核／無法檢查」，線上 smoke 留存可人工核對的證據，且測試證明 checker 不會寫入規則。
+
+### v0.2-P2 — 人工複核報告與一致性驗證
+
+- 將差異整理為正體中文 Markdown：來源、欄位、舊值、新值、影響規則與建議測試。
+- 加入 manifest、規則 metadata、README 與測試常數的一致性檢查。
+- 只有作者核准差異後，才另開小功能調整規則與回歸測試。
+
+DoD：報告不依賴 LLM 判定、不可直接發布未核准常數；人工拒絕時現行快照不變。
+
+### v0.2-P3 — 排程入口與公開透明度
+
+- GitHub Actions 提供手動觸發與低頻排程；網路失敗以 `CHECK_UNAVAILABLE` 結束，不假裝通過。
+- Gradio／README 顯示目前核准快照、最後成功稽核日與限制，不在使用者對話中即時抓法規。
+- 公開 artifact 只留去識別化摘要；原始附件與暫存遵守授權及容量邊界。
+
+DoD：離線 CI 仍可獨立通過；線上 job 的權限、timeout、artifact 與失敗語意清楚，UI 不把「最後檢查」誤寫成「官方保證」。
+
+### v0.2-P4 — 公開驗收與 v0.2.0 發布
+
+- 依相同情境複驗已知 CMS、unknown CMS、HITL、PII、規則版本與 Space session。
+- 完成 Windows CI、Space 公開 smoke、文件／授權／免責掃描與人工來源簽核。
+- 作者自行建立 `v0.2.0` tag／Release；`phase-4` 保持不可變的 v1 歷史基線。
+
+DoD：所有必跑證據與人工簽核完成，沒有未解決的 `REVIEW_REQUIRED`，GitHub 與 Space 指向同一核准 commit。
+
+### v0.2 非目標與成本邊界
+
+- 不自動改法規常數、不讓 LLM 判法條差異、不在每次民眾請求抓官方網站。
+- 不新增交通、輔具、居家無障礙或喘息的個人化金額計算。
+- v0.2-P0–P2 預設模型／API 成本 US$0；若後續需要付費模型或完整雲端診斷，仍須先估算並另取核准。
 
 ## 測試總表
 
