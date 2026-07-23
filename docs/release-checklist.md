@@ -2,6 +2,14 @@
 
 本文件把專案完成後仍需由作者帳號操作的步驟集中在一處。Agent 不執行 Git、不建立託管應用，也不代填 Secrets。
 
+## 目前公開狀態（2026-07-23）
+
+- GitHub 與 Hugging Face Space 已同步至 `55e872f`；Space 為 Running。
+- GitHub Actions 對該 commit 顯示成功。
+- 公開 Space 已通過已知 CMS 試算、unknown CMS 參考表與單次 HITL 核准發布。
+- 最終本機驗證為 `uv lock --check`、91 packages compatible、pytest **514 passed in 4.64s**、sdist／wheel build 與離線 CLI approve 成功。
+- 目前只需提交本次最終文件同步；`phase-4` tag／Release 與同版雲端 20 題皆為可選事項。
+
 ## 1. 本機最後驗證
 
 在專案根目錄執行：
@@ -32,12 +40,9 @@ git status --short
 git diff --check
 ```
 
-建議維持小型 Conventional Commits；以下是本輪尚待公開的邏輯分組，實際檔案仍以 `git status` 與 `git diff` 為準：
+既有功能與修正已分成小型 Conventional Commits 公開。本次只需提交最終驗收文件，建議訊息：
 
-1. `fix(agent): 加入有限首次工具重試與嚴格 adapter 正規化`
-2. `feat(eval): 發布去識別化固定集評估摘要`
-3. `ci: 加入 Windows uv 測試與建置流程`
-4. `docs: 同步完成度稽核、Space 與發布指南`
+`docs: 完成 Phase 4 公開驗收紀錄`
 
 每筆 commit 後可核對作者身分：
 
@@ -59,7 +64,7 @@ git status -sb
 Push 後檢查：
 
 - 首頁最新 commit 與本機一致，README 圖片、Mermaid、連結及 badge 正常顯示。
-- Actions 的 `CI` workflow 成功完成 lock check、498+ 項測試與 distribution build。
+- Actions 的 `CI` workflow 成功完成 lock check、514+ 項測試與 distribution build；後續新增測試時以退出碼 0 為準。
 - Contributors 只顯示作者預期的帳號；commit 不含額外 `Co-authored-by`。
 - repo 中沒有 `.env`、`artifacts/`、模型權重、GGUF 或 `dist/`。
 - [公開評估摘要](../eval/results/local-models-v3.json)可開啟，且只有去識別化的確定性評分。
@@ -89,6 +94,12 @@ Build 完成後，以無痕視窗實際走一次：
 5. 最終報告先停在完整預覽；approve 後內容逐字相同，reject 後不發布。
 6. 手機寬度下輸入、追問、明細、來源與核准按鈕都可操作。
 
+2026-07-23 公開驗收紀錄：
+
+- 已知 CMS 4、一般戶、無外籍看護、服務費 18,000 元：政府給付 15,120 元、額度內部分負擔／合計自付 2,880 元、超額 0 元。
+- unknown CMS：只顯示 CMS 2–8 額度參考、1966 與申請流程，沒有個人化給付或自付金額。
+- approve 單次完成並顯示「已核准並發布」，沒有重複事件錯誤。
+
 若 Build 失敗，先讀 Build logs；不要用放寬相依版本或刪除測試來掩蓋錯誤。
 
 ## 6. 可選：同版雲端 20 題
@@ -104,4 +115,4 @@ git tag -a phase-4 -m "release: 完成 Phase 4 公開驗收"
 git push origin phase-4
 ```
 
-Release notes 至少列出：可驗證／可稽核設計、規則快照、498+ 項測試、地端固定集結果、雲端結果版本邊界、Space 操作方式與免責聲明。tag／Release 是發布里程碑，不是程式功能本身。
+Release notes 至少列出：可驗證／可稽核設計、規則快照、514+ 項測試、地端固定集結果、雲端結果版本邊界、Space 操作方式與免責聲明。tag／Release 是發布里程碑，不是程式功能本身。
