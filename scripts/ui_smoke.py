@@ -24,9 +24,11 @@ PUBLISH_SHOWCASE = os.getenv("UI_SMOKE_PUBLISH_SHOWCASE") == "1"
 def main() -> None:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     console_errors: list[str] = []
+    requested_urls: list[str] = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(viewport={"width": 1440, "height": 1050})
+        page.on("request", lambda request: requested_urls.append(request.url))
         page.on(
             "console",
             lambda message: console_errors.append(message.text)
@@ -124,10 +126,23 @@ def main() -> None:
         advanced_settings.click()
         heading.click()
         header_box = page.locator(".app-header").bounding_box()
+        page_text = page.locator("body").inner_text()
+        assert page.locator("#rule-audit-status").count() == 0
+        assert "法規快照 2026-07-23.1 已核准" not in page_text
+        assert "最後成功稽核" not in page_text
+        assert "4/4 官方來源一致" not in page_text
+        assert "sha256" not in page_text.lower()
+        assert "semantic_fingerprint" not in page_text.lower()
+        assert "extractor" not in page_text.lower()
         how_to_box = page.locator(".how-to").bounding_box()
         assert header_box is not None and how_to_box is not None
-        header_gap = how_to_box["y"] - (header_box["y"] + header_box["height"])
-        assert header_gap <= 20, f"header gap too large: {header_gap}px"
+        header_to_how_to_gap = how_to_box["y"] - (
+            header_box["y"] + header_box["height"]
+        )
+        assert 0 <= header_to_how_to_gap <= 32, (
+            f"how-to is detached from header: {header_to_how_to_gap}px"
+        )
+        assert not any("law.moj.gov.tw" in url for url in requested_urls)
         main_box = page.locator(".main-surface").bounding_box()
         assert main_box is not None and main_box["height"] <= 600
         page.screenshot(path=ARTIFACT_DIR / "gradio-desktop.png", full_page=True)

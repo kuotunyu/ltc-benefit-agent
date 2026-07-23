@@ -339,6 +339,10 @@ def test_demo_builds_without_loading_a_model() -> None:
         for component in config["components"]
         if component.get("props", {}).get("elem_id") == "onboarding-section"
     )
+    assert not any(
+        component.get("props", {}).get("elem_id") == "rule-audit-status"
+        for component in config["components"]
+    )
     assert onboarding_section["props"]["visible"] is True
     assert conversation_section["props"]["visible"] is False
     assert conversation_guide["props"]["visible"] is True

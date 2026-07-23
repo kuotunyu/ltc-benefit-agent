@@ -15,6 +15,13 @@ from .models import (
     RuleSourceManifest,
     RuleSourceManifestSet,
 )
+from .public_summary import (
+    ApprovedAuditStatus,
+    build_public_audit_summary,
+    default_approved_status_path,
+    load_approved_audit_status,
+    render_approved_audit_status_html,
+)
 from .review import (
     ReviewDecision,
     audit_result_from_mapping,
@@ -23,6 +30,7 @@ from .review import (
 )
 
 __all__ = [
+    "ApprovedAuditStatus",
     "ChangedField",
     "ConsistencyCheckResult",
     "ConsistencyIssue",
@@ -35,9 +43,13 @@ __all__ = [
     "audit_content",
     "audit_online",
     "audit_result_from_mapping",
+    "build_public_audit_summary",
     "check_project_consistency",
     "load_audit_evidence",
+    "load_approved_audit_status",
     "load_manifest",
+    "default_approved_status_path",
+    "render_approved_audit_status_html",
     "render_review_report",
     "unavailable_result",
 ]

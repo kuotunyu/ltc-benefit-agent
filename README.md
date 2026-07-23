@@ -17,7 +17,7 @@ short_description: 可稽核的台灣長照 2.0 資格初篩與補助試算
 > **可驗證、可稽核的台灣長照 2.0 資格初篩與補助試算 Agent**
 
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-185A45?style=flat-square)
-![tests 535 passed](https://img.shields.io/badge/tests-535%20passed-185A45?style=flat-square)
+![tests 546 passed](https://img.shields.io/badge/tests-546%20passed-185A45?style=flat-square)
 [![CI](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml)
 ![License MIT](https://img.shields.io/badge/license-MIT-4B5D55?style=flat-square)
 ![UI Gradio](https://img.shields.io/badge/UI-Gradio-4B5D55?style=flat-square)
@@ -75,6 +75,10 @@ uv run --group audit ltc-rule-audit `
 ```
 
 P2 另外比較 manifest、runtime metadata／常數、README、fixtures 與測試斷言。整個流程不使用 LLM，也不自動更新規則；任何差異都必須先由作者檢閱，再另開工作修改。完整來源與人工 gate 契約見 [法規來源 manifest](docs/research/rule-source-manifest.md)。
+
+目前專案核准狀態記錄於封裝狀態檔與本節：manifest `2026-07-23.1`，最後成功稽核日為 2026-07-23，四個來源皆完成檢查。這是維運與稽核證據，不在 Gradio 民眾操作首頁呈現；它不是即時法規保證，也不會由排程自動升格。
+
+獨立的 [法規快照排程](.github/workflows/rule-audit.yml) 可手動觸發，並於每月低頻執行。完整稽核結果只留在 runner 暫存目錄，排程以 `--quiet` 避免將完整 JSON 印入公開 Actions log；只有同一次新鮮線上稽核恰好涵蓋 manifest 全部四個來源、且來源 ID 無重複時，才能產生公開 artifact。局部 `--source` 檢查與封存 `--input` 證據只供私下診斷／離線複核，兩者都不得搭配 `--public-output`。CLI 的 private evidence、public summary 與 review report 必須使用不同檔案身分，且不得覆寫輸入證據、manifest、核准狀態、`.env` 或業務規則檔；Windows 大小寫別名與既有 hard link 也會在讀檔與連線前被拒絕。公開 artifact 僅含 schema、manifest 版本、整體狀態、檢查時間、狀態計數，以及逐來源的名稱、版本、日期、HTTP status、差異數與錯誤有無，不含 canonical URL、raw hash、semantic fingerprint、實際欄位差異、錯誤內容或原始附件。任何 `REVIEW_REQUIRED` 或 `CHECK_UNAVAILABLE` 都會讓 job 以失敗結束，不能被記成通過。民眾對話流程不會因此即時連線官方網站。
 
 ## Agent 與工具流程
 
