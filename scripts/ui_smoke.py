@@ -43,7 +43,9 @@ def main() -> None:
             exact=True,
         ).is_visible()
         assert page.locator(".trust-item").count() == 0
-        assert page.get_by_text("照這 4 步操作", exact=True).is_visible()
+        assert page.locator(".how-to").get_by_text(
+            "照這 4 步操作", exact=True
+        ).is_visible()
         assert page.get_by_text("一次選一位家人", exact=False).is_visible()
         assert page.get_by_text("在下方欄位打字", exact=False).is_visible()
         assert page.get_by_text("按「開始資格初篩」", exact=False).is_visible()
@@ -60,14 +62,13 @@ def main() -> None:
         assert not page.get_by_label("模型模式").is_visible()
         situation_input = page.get_by_label("先描述這位家人的情況")
         assert situation_input.is_visible()
-        followup_input = page.get_by_label("直接回答上面的問題")
+        followup_input = page.get_by_label("輸入回答")
         assert not followup_input.is_visible()
         assert page.locator("#onboarding-section").is_visible()
         assert page.get_by_role("button", name="開始資格初篩").is_visible()
         assert not page.get_by_role("button", name="送出回答").is_visible()
         assert not page.get_by_role("button", name="重新評估另一位家人").is_visible()
         assert not page.locator("#conversation-section").is_visible()
-        assert not page.locator("#history-section").is_visible()
         assert not page.locator("#report-section").is_visible()
         assert not page.get_by_text("請先說明家人的年齡", exact=False).is_visible()
         assert not page.get_by_text("可稽核", exact=True).is_visible()
@@ -139,7 +140,6 @@ def main() -> None:
         )
         assert situation_input.is_visible()
         assert not page.locator("#conversation-section").is_visible()
-        assert not page.locator("#history-section").is_visible()
         assert not page.locator("#report-section").is_visible()
         page.screenshot(path=ARTIFACT_DIR / "gradio-mobile.png", full_page=True)
 
@@ -174,27 +174,43 @@ def main() -> None:
                 "我阿公84歲，太老了不能騎機車，只能騎腳踏車，有攝護腺癌"
             )
             page.get_by_role("button", name="開始資格初篩").click()
-            question = page.locator("#current-question")
-            reply = question.get_by_text("收到，已記下這位家人 84 歲", exact=False)
+            conversation = page.locator("#conversation")
+            conversation.wait_for(state="visible")
+            reply = conversation.get_by_text(
+                "收到，已記下這位家人 84 歲", exact=False
+            )
             reply.wait_for()
-            assert question.get_by_text("年齡或疾病名稱", exact=False).is_visible()
-            assert not question.get_by_text("先選其中一位", exact=False).is_visible()
-            assert question.evaluate("el => getComputedStyle(el).overflowY") not in {
-                "auto",
-                "scroll",
-            }
-            assert question.evaluate("el => el.scrollHeight <= el.clientHeight + 1")
-            assert question.locator("p").first.evaluate(
-                "el => getComputedStyle(el).color"
-            ) == "rgb(23, 33, 29)"
-            question_box = question.bounding_box()
-            question_prose_box = question.get_by_test_id("markdown").bounding_box()
-            assert question_box is not None and question_prose_box is not None
-            assert question_box["width"] <= 930
-            assert question_prose_box["width"] >= question_box["width"] - 50
+            assert conversation.get_by_text(
+                "我阿公84歲，太老了不能騎機車", exact=False
+            ).is_visible()
+            assert conversation.get_by_text("年齡或疾病名稱", exact=False).is_visible()
+            assert not conversation.get_by_text(
+                "先選其中一位", exact=False
+            ).is_visible()
+            assert conversation.locator(".message").count() >= 2
             assert not page.locator("#onboarding-section").is_visible()
             assert not situation_input.is_visible()
             assert not page.get_by_role("button", name="開始資格初篩").is_visible()
+            conversation_guide = page.locator("#conversation-guide")
+            assert conversation_guide.is_visible()
+            assert conversation_guide.get_by_text(
+                "照這 4 步操作", exact=True
+            ).is_visible()
+            assert conversation_guide.get_by_text(
+                "看最新問題", exact=True
+            ).is_visible()
+            assert conversation_guide.get_by_text(
+                "在下方回答", exact=True
+            ).is_visible()
+            assert conversation_guide.get_by_text(
+                "不知道就說「不知道」", exact=True
+            ).is_visible()
+            assert conversation_guide.get_by_text(
+                "資料齊全後確認報告", exact=True
+            ).is_visible()
+            desktop_guide_box = conversation_guide.bounding_box()
+            assert desktop_guide_box is not None
+            assert desktop_guide_box["height"] <= 120
             restart_button = page.get_by_role(
                 "button", name="重新評估另一位家人"
             )
@@ -205,42 +221,48 @@ def main() -> None:
                 )
             ) >= 2
             assert followup_input.is_visible()
+            followup_action = page.locator("#followup-action")
+            assert followup_action.is_visible()
+            assert followup_action.get_by_text(
+                "繼續對話", exact=False
+            ).is_visible()
+            assert followup_action.get_by_text(
+                "不知道的項目可以回答", exact=False
+            ).is_visible()
+            assert "**" not in (followup_action.text_content() or "")
+            page.wait_for_function(
+                "document.querySelector('#followup-input textarea') === "
+                "document.activeElement"
+            )
             followup_button = page.get_by_role("button", name="送出回答")
             assert followup_button.is_visible()
-            question_box = question.bounding_box()
-            followup_box = page.locator("#followup-input").bounding_box()
-            assert question_box is not None and followup_box is not None
+            conversation_box = conversation.bounding_box()
+            followup_box = followup_action.bounding_box()
+            assert conversation_box is not None and followup_box is not None
             followup_gap = followup_box["y"] - (
-                question_box["y"] + question_box["height"]
+                conversation_box["y"] + conversation_box["height"]
             )
-            assert 0 <= followup_gap <= 100, (
-                f"follow-up composer is too far from the question: {followup_gap}px"
+            assert 0 <= followup_gap <= 24, (
+                f"follow-up composer is detached from the chat: {followup_gap}px"
             )
-            history_summary = page.get_by_text("查看完整對話紀錄", exact=True)
-            assert history_summary.is_visible()
-            history_font_size = float(
-                history_summary.evaluate(
-                    "el => getComputedStyle(el).fontSize.slice(0, -2)"
-                )
-            )
-            assert history_font_size >= 20, (
-                f"history summary font too small: {history_font_size}px; "
-                + history_summary.evaluate(
-                    "el => el.parentElement.parentElement.outerHTML"
-                )
-            )
-            assert not page.locator("#conversation").is_visible()
             assert not page.locator(".status-strip").is_visible()
             followup_input.fill("洗澡和穿衣需要協助，已經 8 個月，其他都可以自己來")
             followup_button.click()
             page.wait_for_timeout(3000)
-            next_question = question.get_by_text("原住民", exact=False)
+            next_question = conversation.get_by_text("原住民", exact=False)
             next_question.wait_for()
-            assert question.get_by_text("住宿式機構", exact=False).is_visible()
+            assert conversation.get_by_text("住宿式機構", exact=False).is_visible()
+            assert conversation.get_by_text(
+                "洗澡和穿衣需要協助", exact=False
+            ).is_visible()
             assert followup_input.is_visible()
             assert followup_input.input_value() == ""
+            page.wait_for_function(
+                "document.querySelector('#followup-input textarea') === "
+                "document.activeElement"
+            )
             assert followup_button.is_visible()
-            assert not page.locator("#conversation").is_visible()
+            assert conversation.is_visible()
             if PUBLISH_SHOWCASE:
                 SHOWCASE_PATH.parent.mkdir(parents=True, exist_ok=True)
                 page.set_viewport_size({"width": 1440, "height": 760})
@@ -250,23 +272,16 @@ def main() -> None:
             page.screenshot(
                 path=ARTIFACT_DIR / "gradio-conversation.png", full_page=True
             )
-            history_summary.click()
-            conversation = page.locator("#conversation")
-            conversation.wait_for(state="visible")
-            assert conversation.locator(".message button").count() == 0
-            assert conversation.locator("button").count() <= 2
-            page.screenshot(
-                path=ARTIFACT_DIR / "gradio-history-expanded.png",
-                full_page=True,
-            )
-            history_summary.click()
-            conversation.wait_for(state="hidden")
             page.set_viewport_size({"width": 390, "height": 844})
-            assert question.is_visible()
+            assert conversation.is_visible()
+            assert followup_input.is_visible()
+            assert conversation_guide.is_visible()
+            mobile_guide_box = conversation_guide.bounding_box()
+            assert mobile_guide_box is not None
+            assert mobile_guide_box["height"] <= 190
             assert page.evaluate(
                 "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
             )
-            assert question.evaluate("el => el.scrollHeight <= el.clientHeight + 1")
             page.screenshot(
                 path=ARTIFACT_DIR / "gradio-conversation-mobile.png",
                 full_page=True,
@@ -281,7 +296,6 @@ def main() -> None:
     if TEST_CONVERSATION:
         print(ARTIFACT_DIR / "gradio-conversation.png")
         print(ARTIFACT_DIR / "gradio-conversation-mobile.png")
-        print(ARTIFACT_DIR / "gradio-history-expanded.png")
         if PUBLISH_SHOWCASE:
             print(SHOWCASE_PATH)
     if TEST_APPROVAL:

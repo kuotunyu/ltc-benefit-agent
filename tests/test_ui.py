@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage
 from ltc_benefit_agent.agent.config import AgentProvider
 from ltc_benefit_agent.agent.service import AgentTurnResult
 from ltc_benefit_agent.ui.app import (
+    CONVERSATION_GUIDE,
     CSS,
     HEADER,
     HOW_TO,
@@ -303,25 +304,30 @@ def test_demo_builds_without_loading_a_model() -> None:
     chatbot = next(
         component
         for component in config["components"]
-        if component.get("props", {}).get("label") == "對話紀錄"
+        if component.get("props", {}).get("label") == "評估對話"
     )
-    assert chatbot["props"]["height"] == 320
+    assert chatbot["props"]["height"] == 440
+    assert chatbot["props"]["min_height"] == 360
+    assert chatbot["props"]["max_height"] == 620
+    assert chatbot["props"]["autoscroll"] is True
+    assert chatbot["props"]["layout"] == "bubble"
     assert chatbot["props"]["show_label"] is False
-    assert chatbot["props"]["buttons"] == ["copy_all"]
+    assert chatbot["props"]["buttons"] == []
+    assert chatbot["props"]["group_consecutive_messages"] is False
     conversation_section = next(
         component
         for component in config["components"]
         if component.get("props", {}).get("elem_id") == "conversation-section"
     )
-    history_section = next(
+    conversation_guide = next(
         component
         for component in config["components"]
-        if component.get("props", {}).get("elem_id") == "history-section"
+        if component.get("props", {}).get("elem_id") == "conversation-guide"
     )
-    current_question = next(
+    chat_shell = next(
         component
         for component in config["components"]
-        if component.get("props", {}).get("elem_id") == "current-question"
+        if component.get("props", {}).get("elem_id") == "chat-shell"
     )
     report_section = next(
         component
@@ -335,9 +341,14 @@ def test_demo_builds_without_loading_a_model() -> None:
     )
     assert onboarding_section["props"]["visible"] is True
     assert conversation_section["props"]["visible"] is False
-    assert history_section["props"]["visible"] is False
+    assert conversation_guide["props"]["visible"] is True
+    assert chat_shell["props"]["visible"] is True
     assert report_section["props"]["visible"] is False
-    assert current_question["props"]["value"] == ""
+    assert not any(
+        component.get("props", {}).get("elem_id")
+        in {"history-section", "current-question"}
+        for component in config["components"]
+    )
     assert any(
         component.get("props", {}).get("label") == "模型模式"
         for component in config["components"]
@@ -348,6 +359,15 @@ def test_demo_builds_without_loading_a_model() -> None:
     assert "金額由 Python 計算" not in HEADER
     assert "報告發布前先確認" not in HEADER
     assert "照這 4 步操作" in HOW_TO
+    assert "照這 4 步操作" in CONVERSATION_GUIDE
+    assert "看最新問題" in CONVERSATION_GUIDE
+    assert "在下方回答" in CONVERSATION_GUIDE
+    assert "不知道就說「不知道」" in CONVERSATION_GUIDE
+    assert "資料齊全後確認報告" in CONVERSATION_GUIDE
+    assert "CMS 是照管中心評估後核定的長照需要等級" in HOW_TO
+    assert "不知道 CMS 沒關係" not in HOW_TO
+    assert "尚未評估就直接回答「不知道」" in HOW_TO
+    assert "系統不會替你猜級" in HOW_TO
     assert "可稽核" not in HEADER
     assert "radial-gradient" not in CSS
     assert "font-size: 19px" in CSS
@@ -356,23 +376,35 @@ def test_demo_builds_without_loading_a_model() -> None:
     assert "min-height: 90px" in CSS
     assert "同時顯示 2022 舊制" in str(config)
     assert "先描述這位家人的情況" in str(config)
-    assert "直接回答上面的問題" in str(config)
+    assert "### 對話" in str(config)
+    assert "繼續對話" in str(config)
+    assert "輸入回答" in str(config)
     assert "送出回答" in str(config)
-    assert "系統會根據你的回答繼續追問" in str(config)
+    assert "不知道的項目可以回答" in str(config)
+    assert "#followup-input textarea" in str(config)
+    assert "preventScroll" in str(config)
+    assert "scroller.scrollTop = scroller.scrollHeight" in str(config)
+    assert "#followup-action" in CSS
+    assert "#conversation-guide" in CSS
+    assert "counter-reset: guide-step" in CSS
+    assert "content: counter(guide-step)" in CSS
+    assert "linear-gradient(135deg, #f8fbf9 0%, #eaf3ef 100%)" in CSS
+    assert "grid-template-columns: repeat(4, minmax(0, 1fr))" in CSS
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in CSS
     assert "請先說明家人的年齡" not in str(config)
     assert "進階設定（一般不用調整）" in str(config)
     assert "重新評估另一位家人" in str(config)
-    assert "#history-section .gr-accordion > button.label-wrap" in CSS
+    assert "#chat-shell" in CSS
+    assert "#history-section" not in CSS
     assert "font-size: 20px" in CSS
-    assert "max-width: 920px" in CSS
+    assert "max-width: 960px" in CSS
     assert '#legacy-toggle label span' in CSS
     assert "font-size: 1.25rem" in CSS
 
 
 def test_progressive_sections_only_appear_when_content_exists() -> None:
     empty = _updates(UiResponse([], "", "", "", False, "尚未開始"))
-    assert empty[-4]["visible"] is True
-    assert empty[-3]["visible"] is False
+    assert empty[-3]["visible"] is True
     assert empty[-2]["visible"] is False
     assert empty[-1]["visible"] is False
 
@@ -389,10 +421,9 @@ def test_progressive_sections_only_appear_when_content_exists() -> None:
             "",
         )
     )
-    assert conversation[1] == "請問生活協助需求？"
+    assert conversation[0][-1]["content"] == "請問生活協助需求？"
     assert conversation[7]["visible"] is False
-    assert conversation[-4]["visible"] is False
-    assert conversation[-3]["visible"] is True
+    assert conversation[-3]["visible"] is False
     assert conversation[-2]["visible"] is True
     assert conversation[-1]["visible"] is False
 
@@ -406,8 +437,7 @@ def test_progressive_sections_only_appear_when_content_exists() -> None:
             "待核准",
         )
     )
-    assert report[1] == "待核准"
-    assert report[-4]["visible"] is False
+    assert report[6]["value"] == "待核准"
     assert report[-3]["visible"] is False
     assert report[-2]["visible"] is True
     assert report[-1]["visible"] is True
