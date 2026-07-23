@@ -1,0 +1,84 @@
+name: Rule source audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 1 * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rule-source-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.18"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Verify lockfile
+        run: uv lock --check
+
+      - name: Install audit dependencies
+        run: uv sync --locked --group audit
+
+      - name: Run read-only source audit
+        id: source-audit
+        shell: bash
+        run: |
+          mkdir -p artifacts/rule-audit
+          set +e
+          uv run --group audit ltc-rule-audit \
+            --output "$RUNNER_TEMP/rule-audit-private.json" \
+            --public-output artifacts/rule-audit/public-summary.json \
+            --quiet
+          exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload minimized public summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rule-audit-public-summary
+          path: artifacts/rule-audit/public-summary.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce audit result
+        if: always()
+        shell: bash
+        env:
+          AUDIT_EXIT_CODE: ${{ steps.source-audit.outputs.exit_code }}
+        run: |
+          case "$AUDIT_EXIT_CODE" in
+            0)
+              echo "All approved source semantics match the snapshot."
+              ;;
+            2)
+              echo "::error::REVIEW_REQUIRED: source semantics or required structure changed."
+              exit 2
+              ;;
+            3)
+              echo "::error::CHECK_UNAVAILABLE: source retrieval or inspection was incomplete."
+              exit 3
+              ;;
+            *)
+              echo "::error::Unexpected audit exit code: ${AUDIT_EXIT_CODE:-missing}"
+              exit 1
+              ;;
+          esac

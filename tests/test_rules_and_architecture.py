@@ -120,3 +120,47 @@ def test_public_ci_is_windows_locked_and_secret_free() -> None:
     assert "uv run pytest -q" in workflow
     assert "uv build" in workflow
     assert "secrets." not in workflow
+    assert "ltc-rule-audit" not in workflow
+
+
+def test_scheduled_rule_audit_is_minimized_read_only_and_fail_closed() -> None:
+    workflow = (
+        Path(__file__).parents[1]
+        / ".github"
+        / "workflows"
+        / "rule-audit.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "workflow_dispatch:" in workflow
+    assert "schedule:" in workflow
+    assert "cron: \"17 3 1 * *\"" in workflow
+    assert "runs-on: ubuntu-latest" in workflow
+    assert "contents: read" in workflow
+    assert "actions/checkout@v7" in workflow
+    assert (
+        "astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b"
+        in workflow
+    )
+    assert 'version: "0.11.18"' in workflow
+    assert "uv lock --check" in workflow
+    assert "uv sync --locked --group audit" in workflow
+    assert '--output "$RUNNER_TEMP/rule-audit-private.json"' in workflow
+    assert (
+        "--public-output artifacts/rule-audit/public-summary.json"
+        in workflow
+    )
+    assert "--quiet" in workflow
+    assert "actions/upload-artifact@v7" in workflow
+    assert workflow.count("actions/upload-artifact@v7") == 1
+    assert "path: artifacts/rule-audit/public-summary.json" in workflow
+    assert "retention-days: 30" in workflow
+    assert "CHECK_UNAVAILABLE" in workflow
+    assert "REVIEW_REQUIRED" in workflow
+    assert "\n            3)" in workflow
+    assert "\n            2)" in workflow
+    assert "secrets." not in workflow
+    assert "rules.py" not in workflow
+    assert "approved-audit-status-v1.json" not in workflow
+    assert "contents: write" not in workflow
+    assert "git commit" not in workflow
+    assert "git push" not in workflow

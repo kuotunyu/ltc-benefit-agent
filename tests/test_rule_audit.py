@@ -1,20 +1,29 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+import ltc_benefit_agent.audit.checker as audit_checker_module
+import ltc_benefit_agent.audit.cli as audit_cli_module
 from ltc_benefit_agent.audit import (
     ConsistencyStatus,
     ReviewDecision,
+    RuleAuditResult,
     RuleAuditStatus,
+    RuleSourceManifest,
     audit_content,
+    build_public_audit_summary,
     check_project_consistency,
+    default_approved_status_path,
     load_audit_evidence,
+    load_approved_audit_status,
     load_manifest,
+    render_approved_audit_status_html,
     render_review_report,
     unavailable_result,
 )
@@ -43,6 +52,34 @@ def _current_manifest():
     return load_manifest().get("current-2026-07-regulation")
 
 
+def _result_for_source(
+    template: RuleAuditResult,
+    source: RuleSourceManifest,
+) -> RuleAuditResult:
+    return replace(
+        template,
+        source_id=source.source_id,
+        title=source.title,
+        canonical_url=source.canonical_url,
+        rule_version=source.rule_version,
+        effective_date=source.effective_date,
+        raw_sha256_expected=source.raw_sha256,
+        semantic_fingerprint_expected=source.semantic_fingerprint,
+    )
+
+
+def _complete_manifest_results(
+    default: RuleAuditResult,
+    *,
+    overrides: dict[str, RuleAuditResult] | None = None,
+) -> tuple[RuleAuditResult, ...]:
+    replacements = overrides or {}
+    return tuple(
+        _result_for_source(replacements.get(source.source_id, default), source)
+        for source in load_manifest().sources
+    )
+
+
 def test_packaged_manifest_covers_only_approved_official_sources() -> None:
     manifest = load_manifest()
 
@@ -69,6 +106,56 @@ def test_manifest_rejects_arbitrary_url(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="canonical URL is not approved"):
+        load_manifest(candidate)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (
+            lambda payload: payload.__setitem__("unexpected", True),
+            "unexpected fields",
+        ),
+        (
+            lambda payload: payload["sources"][0].__setitem__(
+                "unexpected", True
+            ),
+            "unexpected fields",
+        ),
+        (
+            lambda payload: payload["sources"][0].__setitem__(
+                "verified_at", "2026-07-22T00:00:00"
+            ),
+            "must include a timezone",
+        ),
+        (
+            lambda payload: payload["sources"][0].__setitem__(
+                "impacted_rule_ids", "eligibility.LEGACY_2022"
+            ),
+            "must be a list",
+        ),
+        (
+            lambda payload: payload["sources"][0].__setitem__(
+                "semantic_snapshot", []
+            ),
+            "must be an object",
+        ),
+    ],
+)
+def test_manifest_rejects_ambiguous_or_unexpected_schema(
+    tmp_path: Path,
+    mutate,
+    message: str,
+) -> None:
+    payload = json.loads(default_manifest_path().read_text(encoding="utf-8"))
+    mutate(payload)
+    candidate = tmp_path / "invalid-manifest.json"
+    candidate.write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=message):
         load_manifest(candidate)
 
 
@@ -158,6 +245,63 @@ def test_unexpected_content_type_is_check_unavailable() -> None:
     assert "Expected text/html" in result.errors[0]
 
 
+def test_audit_rejects_ambiguous_timestamp_without_timezone() -> None:
+    with pytest.raises(ValueError, match="must include a timezone"):
+        audit_content(
+            _current_manifest(),
+            (FIXTURES / "current-verified.html").read_bytes(),
+            checked_at="2026-07-23T00:00:00",
+            content_type="text/html",
+        )
+
+
+def test_online_audit_rejects_non_200_success_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _current_manifest()
+
+    class FakeResponse:
+        status = 204
+        headers = {"Content-Type": "text/html"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def geturl(self) -> str:
+            return source.canonical_url
+
+        def read(self, _limit: int) -> bytes:
+            return b""
+
+    monkeypatch.setattr(
+        audit_checker_module,
+        "urlopen",
+        lambda _request, *, timeout: FakeResponse(),
+    )
+
+    result = audit_checker_module.audit_online(
+        source,
+        checked_at="2026-07-23T00:00:00+08:00",
+    )
+
+    assert result.status is RuleAuditStatus.CHECK_UNAVAILABLE
+    assert result.fetch_result == "unexpected_http_status"
+    assert result.http_status == 204
+    assert result.checked_at == "2026-07-22T16:00:00Z"
+
+
+@pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf")])
+def test_online_audit_rejects_invalid_timeout(timeout: float) -> None:
+    with pytest.raises(ValueError, match="finite and greater than zero"):
+        audit_checker_module.audit_online(
+            _current_manifest(),
+            timeout_seconds=timeout,
+        )
+
+
 def test_extractor_version_drift_requires_review() -> None:
     source = replace(_current_manifest(), extractor_version="future-v2")
     result = audit_content(
@@ -239,6 +383,281 @@ def test_public_status_enum_contains_exactly_three_states() -> None:
         "REVIEW_REQUIRED",
         "CHECK_UNAVAILABLE",
     }
+
+
+def test_public_summary_uses_only_whitelisted_minimized_fields() -> None:
+    verified = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+    review = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-review-age-66.html").read_bytes(),
+        checked_at="2026-07-23T00:01:00Z",
+        content_type="text/html",
+    )
+    unavailable = unavailable_result(
+        _current_manifest(),
+        fetch_result="network_error",
+        error="private diagnostic must not be published",
+        checked_at="2026-07-23T00:02:00Z",
+    )
+    results = (
+        replace(verified, source_id="verified"),
+        replace(review, source_id="review"),
+        replace(unavailable, source_id="unavailable"),
+    )
+
+    summary = build_public_audit_summary(
+        results,
+        manifest_version=load_manifest().manifest_version,
+        expected_source_ids=tuple(result.source_id for result in results),
+    )
+
+    assert set(summary) == {
+        "schema_version",
+        "manifest_version",
+        "generated_at",
+        "overall_status",
+        "source_count",
+        "status_counts",
+        "writes_performed",
+        "results",
+    }
+    assert summary["overall_status"] == "CHECK_UNAVAILABLE"
+    assert summary["source_count"] == 3
+    assert summary["generated_at"] == "2026-07-23T00:02:00Z"
+    assert summary["writes_performed"] is False
+    assert summary["status_counts"] == {
+        "VERIFIED_SNAPSHOT": 1,
+        "REVIEW_REQUIRED": 1,
+        "CHECK_UNAVAILABLE": 1,
+    }
+    assert [result["source_id"] for result in summary["results"]] == [
+        "review",
+        "unavailable",
+        "verified",
+    ]
+    serialized = json.dumps(summary, ensure_ascii=False)
+    result_keys = set().union(
+        *(result.keys() for result in summary["results"])
+    )
+    assert result_keys == {
+        "source_id",
+        "title",
+        "rule_version",
+        "effective_date",
+        "checked_at",
+        "status",
+        "http_status",
+        "changed_field_count",
+        "has_errors",
+        "writes_performed",
+    }
+    for private_field in (
+        "canonical_url",
+        "fetch_result",
+        "raw_sha256",
+        "semantic_fingerprint",
+        "changed_fields",
+        "errors",
+    ):
+        assert private_field not in result_keys
+    assert "private diagnostic" not in serialized
+    assert summary["results"][0]["changed_field_count"] == 1
+    assert summary["results"][1]["has_errors"] is True
+
+
+def test_public_summary_orders_timezone_aware_timestamps_chronologically() -> None:
+    result = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T01:00:00+02:00",
+        content_type="text/html",
+    )
+    later = replace(
+        result,
+        source_id="later",
+        checked_at="2026-07-23T00:30:00Z",
+    )
+
+    summary = build_public_audit_summary(
+        (result, later),
+        manifest_version=load_manifest().manifest_version,
+        expected_source_ids=(result.source_id, later.source_id),
+    )
+
+    assert summary["generated_at"] == "2026-07-23T00:30:00Z"
+    checked_at_by_source = {
+        row["source_id"]: row["checked_at"] for row in summary["results"]
+    }
+    assert checked_at_by_source[result.source_id] == "2026-07-22T23:00:00Z"
+    assert checked_at_by_source[later.source_id] == "2026-07-23T00:30:00Z"
+
+
+def test_public_summary_rejects_timestamp_without_timezone() -> None:
+    result = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+    result = replace(result, checked_at="2026-07-23T00:00:00")
+
+    with pytest.raises(ValueError, match="must include a timezone"):
+        build_public_audit_summary(
+            (result,),
+            manifest_version=load_manifest().manifest_version,
+            expected_source_ids=(result.source_id,),
+        )
+
+
+def test_public_summary_rejects_empty_result_set() -> None:
+    with pytest.raises(ValueError, match="at least one result"):
+        build_public_audit_summary(
+            (),
+            manifest_version=load_manifest().manifest_version,
+            expected_source_ids=tuple(
+                source.source_id for source in load_manifest().sources
+            ),
+        )
+
+
+def test_public_summary_requires_explicit_manifest_identity() -> None:
+    result = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+
+    with pytest.raises(ValueError, match="manifest_version is required"):
+        build_public_audit_summary(
+            (result,),
+            manifest_version="",
+            expected_source_ids=(result.source_id,),
+        )
+    with pytest.raises(ValueError, match="sequence of strings"):
+        build_public_audit_summary(
+            (result,),
+            manifest_version=load_manifest().manifest_version,
+            expected_source_ids=result.source_id,
+        )
+
+
+def test_public_summary_rejects_duplicate_source_ids() -> None:
+    result = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+
+    with pytest.raises(ValueError, match="source_id values must be unique"):
+        build_public_audit_summary(
+            (result, result),
+            manifest_version=load_manifest().manifest_version,
+            expected_source_ids=(result.source_id,),
+        )
+
+
+def test_public_summary_requires_complete_manifest_coverage() -> None:
+    result = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+    manifest = load_manifest()
+
+    with pytest.raises(ValueError, match="exactly cover the manifest sources"):
+        build_public_audit_summary(
+            (result,),
+            manifest_version=manifest.manifest_version,
+            expected_source_ids=tuple(
+                source.source_id for source in manifest.sources
+            ),
+        )
+
+
+def test_packaged_approved_status_matches_manifest_and_renders_static_ui() -> None:
+    status = load_approved_audit_status()
+    rendered = render_approved_audit_status_html(status)
+
+    assert default_approved_status_path().is_file()
+    assert status.manifest_version == load_manifest().manifest_version
+    assert status.last_successful_audit_date.isoformat() == "2026-07-23"
+    assert status.source_count == status.verified_source_count == 4
+    assert status.writes_performed is False
+    assert "法規快照 2026-07-23.1 已核准" in rendered
+    assert "最後成功稽核：2026-07-23 · 4/4 官方來源一致" in rendered
+    assert "對話期間不即時抓取法規" in rendered
+
+
+def test_approved_status_rejects_stale_manifest_version(tmp_path: Path) -> None:
+    payload = json.loads(
+        default_approved_status_path().read_text(encoding="utf-8")
+    )
+    payload["manifest_version"] = "stale"
+    candidate = tmp_path / "approved-status.json"
+    candidate.write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="manifest_version is stale"):
+        load_approved_audit_status(candidate)
+
+
+def test_approved_status_rejects_non_boolean_write_flag(tmp_path: Path) -> None:
+    payload = json.loads(
+        default_approved_status_path().read_text(encoding="utf-8")
+    )
+    payload["writes_performed"] = "false"
+    candidate = tmp_path / "approved-status.json"
+    candidate.write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="writes_performed must be boolean"):
+        load_approved_audit_status(candidate)
+
+
+@pytest.mark.parametrize("invalid_count", [True, 0, "4"])
+def test_approved_status_rejects_non_positive_integer_counts(
+    tmp_path: Path,
+    invalid_count,
+) -> None:
+    payload = json.loads(
+        default_approved_status_path().read_text(encoding="utf-8")
+    )
+    payload["source_count"] = invalid_count
+    candidate = tmp_path / "approved-status.json"
+    candidate.write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="must be a positive integer"):
+        load_approved_audit_status(candidate)
+
+
+def test_approved_status_rejects_unexpected_fields(tmp_path: Path) -> None:
+    payload = json.loads(
+        default_approved_status_path().read_text(encoding="utf-8")
+    )
+    payload["private_note"] = "must not be silently accepted"
+    candidate = tmp_path / "approved-status.json"
+    candidate.write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="unexpected fields"):
+        load_approved_audit_status(candidate)
 
 
 def _copy_consistency_inputs(destination: Path) -> None:
@@ -384,6 +803,7 @@ def test_cli_renders_review_from_offline_evidence(
         checked_at="2026-07-23T00:00:00Z",
         content_type="text/html",
     )
+    audits = _complete_manifest_results(audit)
     evidence = tmp_path / "evidence.json"
     evidence.write_text(
         json.dumps(
@@ -391,7 +811,7 @@ def test_cli_renders_review_from_offline_evidence(
                 "schema_version": "1",
                 "manifest_version": manifest.manifest_version,
                 "writes_performed": False,
-                "results": [audit.to_dict()],
+                "results": [result.to_dict() for result in audits],
             },
             ensure_ascii=False,
         ),
@@ -407,6 +827,7 @@ def test_cli_renders_review_from_offline_evidence(
             str(report),
             "--project-root",
             str(ROOT),
+            "--quiet",
         ]
     )
 
@@ -414,4 +835,293 @@ def test_cli_renders_review_from_offline_evidence(
     report_text = report.read_text(encoding="utf-8")
     assert "# 長照規則來源人工複核報告" in report_text
     assert "差異欄位：無" in report_text
-    assert "project_consistency: CONSISTENT" in capsys.readouterr().out
+    captured = capsys.readouterr().out
+    assert all(
+        f"{result.source_id}: VERIFIED_SNAPSHOT" in captured
+        for result in audits
+    )
+    assert "project_consistency: CONSISTENT" in captured
+    assert "canonical_url" not in captured
+    assert "raw_sha256" not in captured
+    assert "semantic_fingerprint" not in captured
+    assert "changed_fields" not in captured
+    assert "errors" not in captured
+
+
+def test_cli_writes_public_summary_before_review_required_exit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    audit = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-review-age-66.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+    verified = audit_content(
+        _current_manifest(),
+        (FIXTURES / "current-verified.html").read_bytes(),
+        checked_at="2026-07-23T00:00:00Z",
+        content_type="text/html",
+    )
+    audits = _complete_manifest_results(
+        verified,
+        overrides={audit.source_id: audit},
+    )
+    results_by_source = {result.source_id: result for result in audits}
+    monkeypatch.setattr(
+        audit_cli_module,
+        "audit_online",
+        lambda source, *, timeout_seconds: results_by_source[source.source_id],
+    )
+    public_output = tmp_path / "public-summary.json"
+
+    exit_code = audit_cli_main(
+        [
+            "--public-output",
+            str(public_output),
+            "--quiet",
+        ]
+    )
+
+    assert exit_code == 2
+    payload = json.loads(public_output.read_text(encoding="utf-8"))
+    assert payload["overall_status"] == "REVIEW_REQUIRED"
+    changed = {
+        result["source_id"]: result["changed_field_count"]
+        for result in payload["results"]
+    }
+    assert changed[audit.source_id] == 1
+    assert payload["source_count"] == len(load_manifest().sources)
+
+
+def test_cli_rejects_archived_input_public_summary_before_file_read(
+    tmp_path: Path,
+) -> None:
+    public_output = tmp_path / "public-summary.json"
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--input",
+                str(tmp_path / "does-not-exist.json"),
+                "--public-output",
+                str(public_output),
+            ]
+        )
+
+    assert error.value.code == 2
+    assert not public_output.exists()
+
+
+def test_cli_rejects_partial_source_public_summary_before_network(
+    tmp_path: Path,
+) -> None:
+    public_output = tmp_path / "public-summary.json"
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--source",
+                _current_manifest().source_id,
+                "--public-output",
+                str(public_output),
+            ]
+        )
+
+    assert error.value.code == 2
+    assert not public_output.exists()
+
+
+@pytest.mark.parametrize("timeout", ["0", "-1", "nan", "inf"])
+def test_cli_rejects_invalid_timeout_before_network(timeout: str) -> None:
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(["--timeout", timeout, "--quiet"])
+
+    assert error.value.code == 2
+
+
+def test_cli_rejects_colliding_output_paths_before_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "same.json"
+    monkeypatch.setattr(
+        audit_cli_module,
+        "audit_online",
+        lambda *args, **kwargs: pytest.fail("network path must not run"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--output",
+                str(output),
+                "--public-output",
+                str(output),
+                "--quiet",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert not output.exists()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows path aliases are case-insensitive")
+def test_cli_rejects_case_alias_output_paths_before_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "evidence.json"
+    alias = tmp_path / "EVIDENCE.JSON"
+    monkeypatch.setattr(
+        audit_cli_module,
+        "audit_online",
+        lambda *args, **kwargs: pytest.fail("network path must not run"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--output",
+                str(output),
+                "--public-output",
+                str(alias),
+                "--quiet",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert not output.exists()
+    assert not alias.exists()
+
+
+def test_cli_rejects_hard_link_output_alias_before_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "evidence.json"
+    alias = tmp_path / "public.json"
+    output.write_text("unchanged", encoding="utf-8")
+    try:
+        os.link(output, alias)
+    except OSError as exc:
+        pytest.skip(f"hard links unavailable: {exc}")
+    monkeypatch.setattr(
+        audit_cli_module,
+        "audit_online",
+        lambda *args, **kwargs: pytest.fail("network path must not run"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--output",
+                str(output),
+                "--public-output",
+                str(alias),
+                "--quiet",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert output.read_text(encoding="utf-8") == "unchanged"
+    assert alias.read_text(encoding="utf-8") == "unchanged"
+
+
+def test_cli_rejects_output_that_matches_archived_input_before_file_read(
+    tmp_path: Path,
+) -> None:
+    evidence = tmp_path / "not-created.json"
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--input",
+                str(evidence),
+                "--output",
+                str(evidence),
+                "--quiet",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert not evidence.exists()
+
+
+def test_cli_rejects_hard_link_manifest_alias_before_file_read(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest = tmp_path / "manifest.json"
+    alias = tmp_path / "evidence.json"
+    shutil.copyfile(default_manifest_path(), manifest)
+    try:
+        os.link(manifest, alias)
+    except OSError as exc:
+        pytest.skip(f"hard links unavailable: {exc}")
+    before = manifest.read_bytes()
+    monkeypatch.setattr(
+        audit_cli_module,
+        "load_manifest",
+        lambda *args, **kwargs: pytest.fail("manifest must not be read"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(
+            [
+                "--manifest",
+                str(manifest),
+                "--output",
+                str(alias),
+                "--quiet",
+            ]
+        )
+
+    assert error.value.code == 2
+    assert manifest.read_bytes() == before
+    assert alias.read_bytes() == before
+
+
+def test_cli_rejects_env_output_before_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / ".env"
+    monkeypatch.setattr(
+        audit_cli_module,
+        "audit_online",
+        lambda *args, **kwargs: pytest.fail("network path must not run"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(["--output", str(output), "--quiet"])
+
+    assert error.value.code == 2
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    "protected_path",
+    [
+        default_manifest_path(),
+        default_approved_status_path(),
+        *RULE_FILES,
+    ],
+)
+def test_cli_rejects_protected_output_before_network(
+    protected_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before = protected_path.read_bytes()
+    monkeypatch.setattr(
+        audit_cli_module,
+        "audit_online",
+        lambda *args, **kwargs: pytest.fail("network path must not run"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        audit_cli_main(["--output", str(protected_path), "--quiet"])
+
+    assert error.value.code == 2
+    assert protected_path.read_bytes() == before

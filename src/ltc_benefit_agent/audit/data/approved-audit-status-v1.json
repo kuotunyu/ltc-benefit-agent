@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "manifest_version": "2026-07-23.1",
+  "snapshot_status": "APPROVED",
+  "last_successful_audit_date": "2026-07-23",
+  "source_count": 4,
+  "verified_source_count": 4,
+  "writes_performed": false
+}

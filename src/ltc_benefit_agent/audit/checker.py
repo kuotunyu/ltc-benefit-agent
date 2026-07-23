@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import socket
 from datetime import datetime, timezone
 from typing import Any, Mapping
@@ -28,8 +29,10 @@ _MISSING = {"state": "MISSING"}
 
 def _checked_at(value: str | None = None) -> str:
     if value is not None:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return value
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            raise ValueError("Rule audit checked_at must include a timezone")
+        return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
@@ -210,6 +213,8 @@ def audit_online(
 ) -> RuleAuditResult:
     """Fetch one allowlisted official source and audit it without rule writes."""
 
+    if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+        raise ValueError("timeout_seconds must be finite and greater than zero")
     timestamp = _checked_at(checked_at)
     if APPROVED_OFFICIAL_URLS.get(manifest.source_id) != manifest.canonical_url:
         return unavailable_result(
@@ -251,6 +256,14 @@ def audit_online(
             fetch_result="unexpected_redirect",
             http_status=status,
             error="Official source redirected away from its approved canonical URL",
+        )
+    if status != 200:
+        return unavailable_result(
+            manifest,
+            checked_at=timestamp,
+            fetch_result="unexpected_http_status",
+            http_status=status,
+            error=f"Official source returned unexpected HTTP {status}",
         )
     if len(content) > _MAX_SOURCE_BYTES:
         return unavailable_result(

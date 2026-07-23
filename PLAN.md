@@ -81,6 +81,15 @@
 | D49 | 2026-07-23 | 規則核心測試維持完全離線；線上稽核另行執行，runtime 不因每次民眾請求抓取官方網站 | 保留測試可重現性與服務可用性，也避免官方網站短暫異常影響民眾操作 |
 | D50 | 2026-07-23 | 正式 manifest 同時保存核准語意快照、semantic fingerprint 與 raw SHA-256；HTML 原始 bytes 因官方動態頁面而改變時，只要確定性 extractor 得到的必要語意完全一致，仍可判為 `VERIFIED_SNAPSHOT` | raw hash 能證明檔案 bytes，但不能單獨代表規則是否改變；把 raw 與 semantic 證據並列，可保留異動痕跡又避免把版面、時間戳或網站 metadata 變動誤判為法規修改 |
 | D51 | 2026-07-23 | P2 複核報告只由 P1 JSON 證據與確定性一致性檢查產生；一致性涵蓋 manifest、runtime metadata／常數、README、fixtures 與測試斷言，approve／reject 均不修改規則 | 讓人工核准與規則修改成為分離且可稽核的工作，避免報告本身成為寫入通道 |
+| D52 | 2026-07-23 | 排程 job 的完整結果只存在 runner 暫存目錄；公開 artifact 僅包含固定白名單摘要欄位，`REVIEW_REQUIRED` 與 `CHECK_UNAVAILABLE` 都以非零狀態阻擋 | 公開透明不等於公開所有抓取內容、雜湊、差異與錯誤；最小摘要足以顯示檢查完成度，也避免不必要的來源內容再散布 |
+| D53 | 2026-07-23 | Gradio 顯示的是與 manifest 版本相符、經人工核准的封裝狀態；排程不得自動更新這個核准狀態，民眾對話也不得即時抓取官方網站 | 「最近一次排程」與「目前公開核准快照」是不同事實；只有成功的 4／4 證據再經人工驗收，才能另行更新公開狀態 |
+| D54 | 2026-07-23 | 公開排程執行 CLI 時強制使用 `--quiet`；完整稽核 JSON 只寫入 runner 暫存檔，不得同時印入 Actions log | 公開 artifact 的欄位白名單若未涵蓋 stdout，完整雜湊、差異與錯誤仍可能由公開 log 外洩；log 與 artifact 必須採同一最小揭露邊界 |
+| D55 | 2026-07-23 | 公開摘要必須恰好涵蓋 manifest 全部來源，且每個 `source_id` 唯一；局部 `--source` 檢查只能作私有診斷，不得搭配 `--public-output` | 部分來源成功不能代表整份規則快照通過；在摘要產生層與 CLI 入口同時拒絕缺漏、額外或重複來源，避免局部結果被誤認成完整稽核 |
+| D56 | 2026-07-23 | 公開摘要只能由同一次新鮮的完整 manifest 線上稽核產生；`--input` 封存證據只能供私有離線複核，不得搭配 `--public-output` | manifest 版本與來源 ID 完整仍不足以證明輸入檔未過期或未被改寫；公開狀態必須綁定本次實際抓取結果，避免任意舊證據被重新包裝為目前稽核 |
+| D57 | 2026-07-23 | manifest、核准狀態與公開摘要採 exact schema 與時區必填；timeout 必須為有限正數，且線上來源只有 HTTP 200 才進 extractor | 自動字串轉型、未知欄位、naive datetime、`NaN`／無限 timeout 或 204 空回應都可能讓壞證據穿過驗證；稽核入口必須 fail closed |
+| D58 | 2026-07-23 | 稽核 CLI 的 private evidence、public summary 與 review report 必須使用不同路徑，且不得覆寫輸入證據、manifest、核准狀態或業務規則檔 | 證據產生器仍可能被錯誤參數轉成寫入通道；在讀檔與連線前 fail closed，才能落實 checker 唯讀邊界 |
+| D59 | 2026-07-23 | 稽核輸出路徑以平台正規化路徑與既有檔案身分共同判定，並禁止 `.env` 作為輸出 | Windows 大小寫別名與 hard link 可能繞過純字串比對；`.env` 屬於使用者秘密資料，不能成為任何稽核輸出目標 |
+| D60 | 2026-07-23 | Gradio 民眾操作頁不顯示 manifest 版本、最後稽核日或來源計數；核准狀態留在 README、manifest 契約、Actions artifact 與封裝狀態檔 | 這些是開發與維運證據，不是民眾完成資格初篩所需資訊；移除可減少干擾，同時不削弱可稽核性 |
 
 ## 公開介面與計算契約
 
@@ -288,11 +297,16 @@ DoD：
 
 ### v0.2-P3 — 排程入口與公開透明度
 
-- GitHub Actions 提供手動觸發與低頻排程；網路失敗以 `CHECK_UNAVAILABLE` 結束，不假裝通過。
-- Gradio／README 顯示目前核准快照、最後成功稽核日與限制，不在使用者對話中即時抓法規。
-- 公開 artifact 只留去識別化摘要；原始附件與暫存遵守授權及容量邊界。
+- [x] GitHub Actions 提供手動觸發與每月低頻排程；網路失敗以 `CHECK_UNAVAILABLE` 結束，不假裝通過。
+- [x] 排程使用唯讀 repository 權限與 timeout；`REVIEW_REQUIRED`、`CHECK_UNAVAILABLE` 都以非零 exit code 阻擋。
+- [x] 公開 artifact 必須恰好覆蓋 manifest 全部來源且 `source_id` 唯一，只留固定白名單摘要；完整結果、雜湊、欄位差異、錯誤與原始附件不公開上傳。
+- [x] 公開 workflow 以 `--quiet` 執行；完整證據不得印入 Actions log，log 只保留來源 ID、三態狀態與輸出位置。
+- [x] README／manifest／公開 artifact 保存目前核准快照、最後成功稽核日與限制；Gradio 民眾操作頁不顯示內部稽核版本、日期與來源計數，且不在使用者對話中即時抓法規。
+- [x] 公開核准狀態必須匹配 manifest，且不由排程自動升格。
+- [x] CLI 三種證據輸出必須使用不同檔案身分，且在讀檔／連線前拒絕覆寫輸入證據、manifest、核准狀態、`.env` 或業務規則檔；Windows 大小寫別名與 hard link 同樣受阻擋。
+- [x] 作者檢閱排程檔、公開摘要契約與民眾首頁資訊層級，明確回覆「v0.2-P3 驗收通過」後核准進入 v0.2-P4。
 
-DoD：離線 CI 仍可獨立通過；線上 job 的權限、timeout、artifact 與失敗語意清楚，UI 不把「最後檢查」誤寫成「官方保證」。
+DoD：離線 CI 仍可獨立通過；線上 job 的權限、timeout、artifact 與失敗語意清楚；公開摘要沒有私有證據欄位；UI 不展示內部稽核狀態，也不即時抓取官方網站。遠端排程實跑留待作者提交 P3 後觀察，不以尚未存在的 Actions run 冒充本機工程證據。
 
 ### v0.2-P4 — 公開驗收與 v0.2.0 發布
 

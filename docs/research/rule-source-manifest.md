@@ -6,7 +6,7 @@
 
 建立日期：2026-07-23
 
-狀態：v0.2-P1 已通過；v0.2-P2 工程完成，待作者檢閱離線複核報告。
+狀態：v0.2-P1–P2 已通過；v0.2-P3 工程完成，待作者檢閱排程、公開摘要與民眾首頁資訊層級。
 
 ## 目的
 
@@ -163,6 +163,35 @@ P2 使用上述 P1 JSON 證據離線產生 `artifacts/rule-audit/2026-07-23-revi
 
 此流程不使用 LLM、不呼叫網路、不讀 `.env`，也不修改 `rules.py`、`eligibility.py`、`copay.py`、manifest 或公開文件中的規則值。工程驗證完成後，仍須作者明確核准 P2 才能進入排程與公開透明度工作。
 
+作者已於 2026-07-23 檢閱 P2 複核報告，確認四個來源皆為 `VERIFIED_SNAPSHOT`、差異欄位為無、跨檔一致性為 `CONSISTENT`、`writes_performed=false`，並明確核准進入 P3。
+
+## v0.2-P3 排程與公開摘要
+
+`.github/workflows/rule-audit.yml` 提供手動觸發與每月低頻排程。job 使用唯讀 repository 權限與固定 timeout；`REVIEW_REQUIRED` 以 exit code `2` 結束，`CHECK_UNAVAILABLE` 以 exit code `3` 結束，兩者都不得視為成功檢查。
+
+完整稽核結果只寫入 runner 暫存目錄，不公開上傳。公開 artifact `rule-audit-public-summary` 僅允許以下固定白名單欄位：
+
+公開摘要必須由同一次新鮮的線上稽核產生，恰好涵蓋正式 manifest 的全部四個來源，且每個 `source_id` 只能出現一次。任何缺漏、額外或重複來源都會拒絕產生摘要；使用 `--source` 的局部檢查只供私有診斷，使用 `--input` 的封存證據只供私有離線複核，因此兩者都不得同時指定 `--public-output`。
+
+CLI 的 `--output`、`--public-output` 與 `--review-output` 必須使用不同檔案身分，且不得指向 `--input`、正式 manifest、封裝核准狀態、`.env` 或 `rules.py`／`eligibility.py`／`copay.py`。Windows 大小寫不同但實際相同的路徑，以及指向同一既有檔案的 hard link，都視為同一目標。這些檢查必須在讀取封存證據、載入 manifest 或連線官方來源前完成，避免錯誤參數把唯讀稽核轉成覆寫受保護檔案或秘密資料的通道。
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `schema_version` | string | 公開摘要 schema，目前固定為 `1` |
+| `manifest_version` | string | 本次使用的核准 manifest 版本 |
+| `generated_at` | ISO datetime | 所有來源中最後一個完成的檢查時間 |
+| `overall_status` | enum | 依最嚴重來源狀態彙整的三態結果 |
+| `source_count` | integer | manifest 來源總數 |
+| `status_counts` | object | 三種公開狀態的來源數 |
+| `writes_performed` | boolean | 必須固定為 `false` |
+| `results` | object[] | 依 `source_id` 排序的逐來源最小摘要 |
+
+逐來源摘要只允許 `source_id`、`title`、`rule_version`、`effective_date`、`checked_at`、`status`、`http_status`、`changed_field_count`、`has_errors` 與 `writes_performed=false`。不得包含 canonical URL、raw SHA-256、semantic fingerprint、實際 `changed_fields`、實際 `errors`、HTTP 回應內容、原始附件、token、個資或對話。來源層狀態的嚴重度固定為 `CHECK_UNAVAILABLE` 高於 `REVIEW_REQUIRED`，再高於 `VERIFIED_SNAPSHOT`，避免同時有網路失敗與內容差異時被較輕狀態掩蓋。
+
+排程呼叫 CLI 時強制加入 `--quiet`：完整 JSON 只寫入 `$RUNNER_TEMP`，Actions log 僅保留逐來源 `source_id`／狀態與公開摘要路徑，不得藉 stdout 繞過上述公開欄位白名單。本機人工稽核若未使用 `--quiet`，仍可在操作者自己的終端檢視完整 JSON；若只檢查個別來源或載入既有 `--input` 證據，則只能保留私有結果，不能輸出公開摘要。這項限制讓公開摘要的時間與內容都綁定當次實際抓取，而不是任意封存檔。
+
+封裝的 `approved-audit-status-v1.json` 保存目前人工核准狀態。該檔必須與正式 manifest 版本相符，目前記錄 manifest `2026-07-23.1`、最後成功稽核日 2026-07-23、4／4 來源通過與 `writes_performed=false`。該檔供稽核與一致性測試，不在 Gradio 民眾操作頁呈現；排程只產生新證據，不會自動修改或升格核准狀態，只有成功的 4／4 稽核再經作者人工驗收，才能另行更新。
+
 ## 執行與人工 gate
 
 1. 核心 pytest 一律使用離線 fixture，不依賴外部網站。
@@ -170,3 +199,4 @@ P2 使用上述 P1 JSON 證據離線產生 `artifacts/rule-audit/2026-07-23-revi
 3. 稽核 artifact 預設放在忽略版控的位置；公開摘要不得含 token、個資、原始對話或不允許再散布的附件。
 4. 只有作者檢查 `changed_fields` 並明確核准後，才能另外修改規則、測試、metadata、README 與正式 manifest。
 5. 規則修改、人工核准、Git commit／tag／Release 都是分開的步驟；Agent 不執行 Git。
+6. Gradio 不讀取或顯示內部核准狀態，也不在民眾對話或報告產生期間連線官方來源。

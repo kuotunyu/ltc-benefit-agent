@@ -2,22 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P2 均已驗收，P2 正等待作者自行 commit／Push，尚未開始 P3。
-- **本次完成**：作者檢閱正體中文複核報告，確認四個來源皆為 `VERIFIED_SNAPSHOT`、差異欄位為無、跨檔結果為 `CONSISTENT`、`writes_performed=false`，並明確回覆「v0.2-P2 驗收通過」。
+- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P3 已由作者驗收。v0.2-P4 已獲准進入但尚未開始；P3 接受狀態仍待作者自行 commit／Push。
+- **本次完成**：建立手動／每月法規稽核 workflow、最小公開摘要與封裝核准狀態；另補 `--quiet` 阻止完整稽核 JSON 出現在公開 Actions log，並要求公開摘要由同一次新鮮線上稽核完整覆蓋 manifest 全部來源且來源 ID 唯一。局部 `--source` 與封存 `--input` 都不能產生公開摘要；三種證據輸出必須使用不同檔案身分，且在讀檔／連線前拒絕覆寫輸入證據、manifest、核准狀態、`.env` 與業務規則檔，Windows 大小寫別名與 hard link 也不能繞過。排程不自動升格快照，民眾對話不即時抓法規。封裝核准狀態留在專案稽核層；依作者 UI 回饋移除民眾首頁狀態卡。另修正多輪白話答案未被辨識、導致重複追問的問題：每輪重新核對整段對話，只追問一組真正缺漏的資料；「基本上可以自己進行，但做很慢，希望有人幫助」現在會被記為有協助需求，下一輪只追問尚未回答的持續時間。
 - **v0.2-P1 線上證據**：2026-07-23 四個官方來源均 HTTP 200、`VERIFIED_SNAPSHOT`、`changed_fields=[]`、`writes_performed=false`；兩個 HTML raw bytes 不同但必要語意一致，兩份 PDF raw 與 semantic 皆一致。
 - **v0.2-P2 報告**：`artifacts/rule-audit/2026-07-23-review.md`；比對 manifest、runtime metadata／常數、README、離線 fixtures 與 audit 測試斷言；原地重建 SHA-256 完全一致，四個受保護規則檔 0 變更。
-- **實跑總證據**：`uv lock --check` 解析 94 packages、`uv pip check` 92 packages 全部相容、audit 測試 **21 passed in 0.14s**、完整 pytest **535 passed in 3.34s**、sdist／wheel build 成功，project skill 驗證為 `Skill is valid!`。
+- **實跑總證據**：三態摘要 smoke 依序得到 `VERIFIED_SNAPSHOT`／`REVIEW_REQUIRED`／`CHECK_UNAVAILABLE`，且禁用欄位與錯誤內容均未進公開摘要；缺漏、額外、重複來源、局部 `--source`、封存 `--input` 公開輸出、輸出路徑互撞、Windows 大小寫別名、hard link、`.env` 與覆寫受保護檔案都會在危險操作前被拒絕。最新多輪解析／Agent 測試 **45 passed in 1.04s**，完整 pytest **583 passed in 3.99s**；`uv lock --check` 解析 94 packages、`uv pip check` 顯示 92 packages compatible，`py_compile` 通過；既有 sdist／wheel build、project skill 與文字檔格式檢查證據仍有效。乾淨 CPython 3.11 wheel 安裝後 CLI 得到四來源通過、專案一致且零規則寫入。2026-07-23 另以 workflow 等價參數實際連線四個官方來源，42.709 秒內全部 HTTP 200、`VERIFIED_SNAPSHOT`、零差異、零錯誤，公開摘要白名單、P2 一致性與封裝狀態交叉檢查全部通過；三條 Playwright smoke 均輸出 `UI_SMOKE_OK`，browser console error 為 0，且沒有民眾對話即時法規網站請求。
 - **Context7**：以 `/websites/langchain_oss_python` 再確認 `AgentMiddleware.state_schema`、`ModelRequest.override` 與 `wrap_tool_call` 的現行介面後實作雙層 guard；既有 Gradio 查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 作者自行檢查並提交 P1／P2 變更，再同步 GitHub 與 Hugging Face Space。
-  2. 確認遠端同步後開始 v0.2-P3：排程入口、失敗語意與公開透明度。
-- **成本**：v0.2-P2 新增成本 US$0；報告完全離線，沒有網路、模型或付費 API 呼叫。
-- **待使用者人工處理**：P2 人工 gate 已完成；目前只需進行 Git 提交與遠端同步。
-- **待使用者 Git 操作**：自行檢查、分筆 commit P1／P2 並 Push；Agent 不執行任何 Git 指令。
+  1. 作者在專案目錄以 PowerShell 執行 `git status --short` 並貼回結果，讓 P3 變更依實際檔案分組提交。
+  2. 作者完成 P3 commit／Push 後，開始 v0.2-P4 公開驗收與 v0.2.0 發布。
+- **成本**：v0.2-P3 工程與測試新增成本 US$0；沒有模型或付費 API 呼叫。
+- **待使用者人工處理**：P3 已正式驗收，沒有待補的功能驗收；下一個人工動作是回傳 Git status，並自行完成提交與同步。
+- **待使用者 Git 操作**：P3 驗收後變更尚待作者自行 commit／Push；Agent 不執行或代讀任何 Git 指令。
 - **⚠️ 已知坑**：官方頁面 bytes 改變不等於規則語意改變；`CHECK_UNAVAILABLE` 不能當通過；checker 永不自動改常數；既有 CMS／Space／評估限制仍見 Phase 日誌；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
@@ -642,3 +642,143 @@
   - 驗收後再次執行 `tests/test_rule_audit.py`，結果 **21 passed in 0.21s**；未重新抓取網路、未呼叫模型或付費 API、未讀取 `.env`，新增成本 US$0。
   - 本次只同步 Phase gate 文件，尚未開始 P3，也未修改資格、額度、部分負擔或已核准 manifest。
   - Git：Agent 未執行任何 Git 指令；待作者自行分筆提交 P1／P2 並同步 GitHub 與 Hugging Face Space。P2 建議 commit：`feat(audit): 加入法規差異複核報告與一致性檢查`；P2 不建立 tag。
+
+### v0.2-P3 — 排程入口與公開透明度（工程完成，待作者驗收）
+
+- **2026-07-23（排程、最小摘要與公開狀態）**：
+  - 建立 `.github/workflows/rule-audit.yml`，支援手動觸發與每月低頻排程；使用唯讀 repository 權限、12 分鐘 timeout 與 concurrency，`REVIEW_REQUIRED`／`CHECK_UNAVAILABLE` 都維持非零失敗語意。
+  - 新增確定性公開摘要 renderer；完整稽核結果只放 runner 暫存目錄，公開 artifact 僅保留整體狀態、狀態計數與逐來源最小摘要，不含 canonical URL、hash、實際差異、錯誤內容或原始附件。
+  - 新增封裝核准狀態 `approved-audit-status-v1.json`；載入時會交叉核對 manifest 版本。目前顯示 manifest `2026-07-23.1`、最後成功稽核日 2026-07-23、4／4 通過與未寫入規則。
+  - Gradio 首頁顯示核准快照狀態卡，明示這是專案人工核准狀態、不是官方保證，且民眾對話不即時抓取官方網站；排程不會自動升格公開狀態。
+  - 針對性測試涵蓋公開欄位白名單、狀態嚴重度、空結果、manifest 漂移、非 boolean 寫入旗標、CLI 公開輸出、UI 狀態卡、主 CI 離線邊界與 workflow fail-closed 設定，結果 **49 passed in 2.53s**。
+  - 最終驗證：`uv lock --check` 解析 94 packages；`uv pip check` 顯示 92 packages compatible；完整 pytest **542 passed in 3.48s**；`uv build` 成功產生 sdist／wheel，wheel 同時包含 `rule-sources-v1.json` 與 `approved-audit-status-v1.json`。
+  - 封裝狀態 smoke 輸出 `APPROVED_STATUS_OK 2026-07-23.1 2026-07-23 4/4 False`；本輪異動程式、workflow、測試與文件的行尾空白檢查通過。
+  - project skill 首次驗證受 Windows CP950 讀取 Unicode 影響而中止，改以 `python -X utf8` 重跑後輸出 `Skill is valid!`；未修改系統編碼或全域設定。
+  - 成本與邊界：US$0；未呼叫模型或付費 API、未讀取 `.env`、未修改資格／額度／部分負擔規則，也未執行 Git。遠端 Actions 尚未提交，故未把不存在的排程 run 記為通過。
+  - Phase gate：工程完成，等待作者檢閱與明確回覆「v0.2-P3 驗收通過」；通過前不進入 P4。建議 commit：`feat(audit): 加入排程稽核與公開快照狀態`。
+
+- **2026-07-23（P3 公開 log 邊界收尾）**：
+  - 收尾稽核發現 CLI 雖只上傳最小公開摘要，仍會把完整私人證據 JSON 印到 stdout；公開 repository 的 Actions log 可能因此繞過 artifact 白名單。
+  - CLI 新增 `--quiet`；排程強制使用此模式，完整 JSON 只寫入 `$RUNNER_TEMP`，log 僅保留來源 ID、三態狀態與輸出位置。本機人工稽核未加旗標時仍可查看完整 JSON。
+  - 離線三態 smoke 分別得到 `VERIFIED_SNAPSHOT`（差異 0、無錯誤）、`REVIEW_REQUIRED`（差異 1、無錯誤）與 `CHECK_UNAVAILABLE`（差異 0、有錯誤）；精確鍵名掃描確認 canonical URL、raw／semantic hash、實際差異、錯誤內容、fetch result 與測試 sentinel 都未進公開摘要，三者 `writes_performed=false`。
+  - workflow 靜態 smoke 輸出 `WORKFLOW_BOUNDARY_OK read-only quiet minimized-artifact fail-closed`；確認唯讀權限、私有暫存檔、最小 artifact、缺檔失敗、三態非零阻擋，且沒有 secrets、Git 寫入或規則檔寫入。
+  - P3／UI 針對性測試 **49 passed in 2.57s**；完整 pytest **542 passed in 3.34s**；lock、相依相容性、sdist／wheel、兩份 audit data 封裝、Gradio 核准狀態 smoke、project skill 與行尾空白檢查全部通過。
+  - 驗證過程曾有兩次 smoke 斷言失敗：第一次將允許的 `has_errors` 子字串誤判為禁用的 `errors`，第二次以 PowerShell pipe 傳送含中文字面值造成驗證腳本編碼不符；兩者皆為臨時驗證腳本問題，改以精確鍵名與 ASCII 結構標記重跑後通過，產品程式與公開資料不受影響。
+  - 成本與邊界：US$0；未連線官方來源、未呼叫模型或付費 API、未讀取 `.env`、未修改業務規則，也未執行 Git。P3 仍等待作者驗收，尚未進入 P4。
+  - 建議 commit：`fix(audit): 避免完整稽核證據進入公開 log`。
+
+- **2026-07-23（P3 完整來源覆蓋收尾）**：
+  - 最後離線稽核發現公開摘要 renderer 原可接收局部結果；若誤用 `--source` 或不完整的私有輸入，可能讓部分來源成功被誤認成整份快照通過。
+  - 公開摘要現在必須恰好涵蓋 manifest 全部來源，並拒絕缺漏、額外或重複 `source_id`；CLI 在連線前即拒絕 `--source` 與 `--public-output` 併用。局部來源檢查仍保留為私有診斷功能。
+  - PLAN D55、README、來源契約文件與 project skill 已同步完整覆蓋邊界；未變更 workflow 排程頻率、官方來源、核准 manifest 或業務規則。
+  - 實跑證據：`tests/test_rule_audit.py` **30 passed in 0.30s**；P3／UI／架構針對性測試 **52 passed in 2.38s**；完整 pytest **545 passed in 3.33s**；`uv lock --check` 解析 94 packages、`uv pip check` 顯示 92 packages compatible、`py_compile`、sdist／wheel build 與 skill 驗證全部通過。
+  - 成本與邊界：US$0；未連線官方來源、未呼叫模型或付費 API、未讀取 `.env`、未修改資格／額度／部分負擔規則，也未執行 Git。P3 工程與收尾完成，仍等待作者驗收；未進入 P4。
+  - 建議 commit：`fix(audit): 限制公開摘要必須完整覆蓋來源`。
+
+- **2026-07-23（P3 公開證據新鮮度收尾）**：
+  - 收尾信任邊界稽核發現，封存 `--input` 即使 manifest 版本與四個來源 ID 完整，仍可能是過期或被改寫的舊證據；若可搭配 `--public-output`，就可能被重新包裝成目前公開狀態。
+  - CLI 現在於讀取封存檔前即拒絕 `--input` 與 `--public-output` 併用。封存證據仍可用於 P2 私有離線複核；公開摘要只能由同一次新鮮的完整 manifest 線上稽核產生。
+  - 測試改以確定性 monkeypatch 模擬當次完整線上稽核，保留 `REVIEW_REQUIRED` 仍先寫最小摘要再以 exit code `2` 阻擋的語意；另驗證不存在的封存檔也會先因不安全參數組合被拒絕，且不建立公開檔案。
+  - PLAN D56、README、來源契約與 project skill 已同步這項新鮮度限制；沒有變更排程頻率、來源白名單、核准 manifest 或任何業務規則。
+  - 最終實跑證據：`tests/test_rule_audit.py` **31 passed in 0.26s**；P3／UI／架構針對性測試 **53 passed in 2.36s**；完整 pytest **546 passed in 3.31s**；`uv lock --check` 解析 94 packages，`uv pip check` 顯示 92 packages compatible，`py_compile` 與 sdist／wheel build 均成功。
+  - workflow 靜態檢查輸出 `WORKFLOW_BOUNDARY_OK read-only fresh-full-audit quiet minimized-artifact no-secrets fail-closed`；確認排程不使用 `--input`、Secrets 或私有 evidence artifact。wheel 共 46 個實際檔案，只封裝兩份必要 audit data，未含 `.env`、artifacts、Git metadata、cache、私有 JSON 或複核報告。
+  - `audit-rule-snapshot` skill 以 uv Python UTF-8 模式驗證為 `Skill is valid!`，七個本輪文字檔行尾空白檢查通過。首次 wheel smoke 誤把 ZIP 目錄項當檔案，首次 skill smoke 誤用 ambient Anaconda Python 而在 user-site 編碼失敗；改以實際檔案過濾與專案 uv Python 重跑後通過，產品程式與公開資料不受影響。
+  - 成本與邊界：US$0；未連線官方來源、未呼叫模型或付費 API、未讀取 `.env`、未修改資格／額度／部分負擔規則，也未執行 Git。P3 仍等待作者驗收；未進入 P4。
+
+- **2026-07-23（P3 公開狀態瀏覽器驗收收尾）**：
+  - 依 `webapp-testing` 流程以專用連接埠 17860、17861、17862 啟動受控 Gradio fixture，分別驗收基礎桌面／手機、離線多輪對話與 HITL 核准發布；三條路徑都輸出 `UI_SMOKE_OK`，browser console error 為 0，helper 並確認只停止自己啟動的程序。
+  - 瀏覽器契約核對公開狀態卡的 manifest `2026-07-23.1`、最後成功稽核日 2026-07-23、4／4 官方來源一致，以及「不是主管機關保證」與「對話期間不即時抓取法規」限制；頁面未出現 raw／semantic hash 或 extractor 等私人證據欄位。
+  - request listener 確認民眾 UI 沒有向 `law.moj.gov.tw` 發出即時請求；桌面與 390 px 手機截圖均完成視覺檢查，狀態卡、4 步提示、對話輸入與核准介面沒有水平溢出或互相擠壓。
+  - 首次 smoke 發現舊版版面斷言仍假設標題與操作說明直接相鄰；P3 狀態卡插入後產生誤報，已把契約改為「標題 → 狀態卡 → 操作說明」兩段合理間距，並加入狀態內容、敏感欄位與網路邊界斷言。另一次 PowerShell URL 傳參因引號被 shell 消耗而連到預設埠，改用單一 `cmd` 環境作用域後重跑通過；兩者都是測試 harness 問題，不是產品失敗。
+  - project skill 已同步規定狀態卡異動後須執行桌面、手機、多輪與 HITL browser smoke。本輪沒有修改 Gradio 產品版面、核准狀態檔、manifest 或業務規則。
+  - 收尾實跑：P3／UI／架構針對性測試 **53 passed in 2.30s**；完整 pytest **546 passed in 3.21s**；`uv lock --check` 解析 94 packages、`uv pip check` 顯示 92 packages compatible，`py_compile`、sdist／wheel build、project skill 與三個異動文字檔行尾空白檢查均通過。
+  - 成本與邊界：US$0；未連線官方法規來源、未呼叫模型或付費 API、未讀取 `.env`，也未執行 Git。P3 仍等待作者驗收；未進入 P4。
+
+- **2026-07-23（P3 乾淨安裝、失敗路徑與 Actions 版本核對）**：
+  - 將本輪 wheel 離線安裝到 workspace 外的全新 uv-managed CPython 3.11.15 環境；封裝狀態輸出 `CLEAN_STATUS_OK 2026-07-23.1 2026-07-23 4/4 False`。
+  - 以乾淨安裝後的 `ltc-rule-audit` CLI 讀取既有 P1 私有證據，四個來源皆為 `VERIFIED_SNAPSHOT`、專案一致性為 `CONSISTENT`、`writes_performed=false`；證明封裝後 CLI 不依賴原始碼目錄才能完成離線複核。
+  - 六項聚焦測試通過：來源不可用不會被當成通過、語意年齡變更產生 `REVIEW_REQUIRED`、需要複核時仍先寫最小公開摘要、摘要欄位維持白名單、來源覆蓋必須完整，以及排程維持唯讀與 fail-closed。
+  - wheel 共 54 個項目；audit data 只包含 `approved-audit-status-v1.json` 與 `rule-sources-v1.json`，`.env`、artifacts、Git metadata、cache 等禁止項目為 0。
+  - 核對官方 release 頁面：`actions/checkout` 與 `actions/upload-artifact` 的現行 major 皆為 v7；`astral-sh/setup-uv` 專案雖已有 v9，但 workflow 固定的 v8.1.0 是官方不可變 release，且 commit SHA 與官方頁面一致，因此本輪不追版、不改 workflow。
+  - 驗證過程曾誤用不存在的測試名稱，以及在臨時 PowerShell harness 中出現一次引號 typo 與提早關閉 pipe；均改用正確測試節點與無 pipe 指令重跑通過，產品程式與公開資料未受影響。
+  - 成本與邊界：US$0；未重新抓取官方法規、未呼叫模型或付費 API、未讀取 `.env`、未修改業務規則，也未執行 Git。P3 工程證據完整，仍須作者明確驗收；未進入 P4。
+
+- **2026-07-23（P3 workflow 等價線上實跑與狀態交叉核對）**：
+  - 以公開 workflow 相同的完整 manifest、`--quiet`、私有輸出與最小公開輸出參數執行線上稽核；四個白名單官方來源皆 HTTP 200、`VERIFIED_SNAPSHOT`、`changed_fields=[]`、`errors=[]`、`writes_performed=false`，程序退出碼為 0。
+  - 四來源查證時間介於 `2026-07-23T11:55:39.810287Z` 與 `2026-07-23T11:56:22.519382Z`，同一次執行歷時 42.709 秒；私有證據與最小公開摘要分別保存於忽略版控的 `artifacts/rule-audit/2026-07-23-p3-online-private.json` 與 `2026-07-23-p3-public-summary.json`。
+  - 以該次新鮮私有證據離線重建 `2026-07-23-p3-review.md`，四來源仍全部一致，跨檔結果為 `CONSISTENT`，未發生規則寫入。
+  - 公開摘要實體通過 exact schema 與禁用內容掃描：四個 `source_id` 與 manifest 完全相同且唯一，狀態計數為 4／0／0，沒有 canonical URL、raw／semantic hash、實際差異、錯誤內容、token、私有路徑、個資或對話。
+  - 交叉比對輸出 `STATUS_CONSISTENCY_OK manifest=2026-07-23.1 live=VERIFIED_SNAPSHOT sources=4/4 approved=4/4 date=2026-07-23 writes=False`；README 同時具備 manifest、最後成功日、四來源完成、非即時保證及排程不自動升格五項公開聲明。
+  - `uv lock --check` 成功且完整 pytest **546 passed in 3.33s**；`uv build` 重新建立 sdist／wheel。wheel 有 46 個實際檔案，audit data 恰為 manifest 與核准狀態兩份 JSON，未含 `.env`、私有 artifact、複核報告、Git metadata 或 cache。
+  - 首次狀態檔搜尋因 Windows 路徑分隔符與 regex 不符而找不到檔案；首次 wheel 清單斷言則受 PowerShell `-join` 運算優先序影響誤報。兩者皆改用明確路徑與先計算字串後重跑通過，產品檔案與稽核結論不受影響。
+  - 成本與邊界：US$0；本次只存忽略版控的稽核證據並更新進度文件，未讀取 `.env`、未呼叫模型或付費 API、未修改 manifest／業務規則、未啟動服務，也未執行 Git。P3 仍等待作者明確驗收；未進入 P4。
+
+- **2026-07-23（P3 公開摘要時間與 workflow 不可變邊界 hardening）**：
+  - 修正公開摘要 `generated_at` 原以 ISO 字串字典序挑選最新時間的邊界；現在強制每筆 `checked_at` 都必須包含時區，依實際時間先後比較，再正規化為 UTC `Z` 格式。不同 offset 與缺少時區的案例均有測試。
+  - 公開摘要測試鎖定頂層與逐來源 exact key whitelist，避免未來新增私有 hash、語意快照、差異細節、錯誤內容或 extractor 資訊時意外被公開。
+  - workflow 架構測試新增不可變保護：只能上傳一份最小公開摘要、artifact 保存 30 天、權限維持 `contents: read`，且不得出現核准狀態自動升格、`git commit` 或 `git push`。
+  - 以既有 workflow 等價私有證據重新產生記憶體內公開摘要，輸出 `PUBLIC_SUMMARY_RECHECK_OK status=VERIFIED_SNAPSHOT sources=4 generated_at=2026-07-23T11:56:22.519382Z writes=False`；exact schema、四來源完整覆蓋、私有欄位隔離與零寫入全部通過。
+  - 實跑證據：audit／架構針對性測試 **44 passed in 0.29s**；`uv lock --check` 解析 94 packages；`uv pip check` 顯示 92 packages compatible；完整 pytest **548 passed in 3.75s**；sdist／wheel build 成功。
+  - 兩次臨時摘要複核先受 Windows `python -c` 引號轉譯影響，改用標準輸入後執行；第一次正式斷言又把合法 `has_errors` 子字串誤當成私有 `errors`，改為逐層 exact key 比對後通過。兩者皆為臨時驗證腳本問題，產品與稽核證據未受影響。
+  - 成本與邊界：US$0；未重新抓取官方來源、未讀取 `.env`、未呼叫模型或付費 API、未修改 manifest／核准狀態／業務規則，也未執行 Git。P3 工程與驗證已完成，仍等待作者明確回覆「v0.2-P3 驗收通過」；未進入 P4。
+
+- **2026-07-23（P3 證據輸入 fail-closed 收尾）**：
+  - manifest parser 改為 exact schema，拒絕頂層或來源的未知欄位、錯誤型別、空字串、重複規則 ID、非物件語意快照與未帶時區的 `verified_at`，不再以 `str()` 強制轉型掩蓋壞資料。
+  - 線上 checker 與 CLI 現在要求 timeout 為有限正數；HTTP 204 等非 200 回應明確記為 `CHECK_UNAVAILABLE`，不把空內容交給 extractor。稽核 `checked_at` 與公開摘要時間皆要求時區並正規化為 UTC `Z`。
+  - 公開摘要 renderer 強制提供非空 manifest 版本與完整來源集合；核准狀態同樣採 exact schema，拒絕未知欄位、非正整數來源計數、布林偽裝整數與非物件 JSON。
+  - workflow 再確認每月／手動入口、`contents: read`、12 分鐘 timeout、單一最小 artifact、30 天保存、缺檔失敗與三態非零阻擋；沒有核准狀態自動寫入、`git commit` 或 `git push`。
+  - 第一輪新增邊界後 audit／架構測試 **59 passed in 0.37s**；補齊 direct API timeout、manifest identity 與核准狀態 JSON 邊界後，針對性測試 **64 passed in 0.37s**，`py_compile` 與異動程式／測試／workflow 行尾空白檢查通過。
+  - 最終收尾：`audit-rule-snapshot` project skill 通過官方 `quick_validate.py`（`Skill is valid!`）；`uv lock --check` 解析 94 packages，`uv pip check` 顯示 92 packages compatible；完整 pytest **568 passed in 3.60s**；`uv build` 成功建立 `ltc_benefit_agent-0.1.0` sdist 與 wheel。
+  - 成本與邊界：US$0；未重新連線官方來源、未讀取 `.env`、未呼叫模型或付費 API、未修改 manifest／核准狀態／業務規則，也未執行 Git。P3 仍等待作者明確驗收；未進入 P4。
+
+- **2026-07-23（P3 稽核輸出路徑唯讀邊界收尾）**：
+  - CLI 新增輸出路徑 fail-closed 檢查：`--output`、`--public-output`、`--review-output` 必須互異，且不得指向 `--input`、正式 manifest、封裝核准狀態或 `rules.py`／`eligibility.py`／`copay.py`。
+  - 不安全路徑會在讀取封存證據、載入 manifest 或呼叫線上 checker 前由參數解析器拒絕；測試同時保存受保護檔案 bytes 前後快照，確認失敗路徑沒有覆寫內容。
+  - project skill、PLAN D58、README 與來源契約已同步這項唯讀邊界；沒有改變來源白名單、核准 manifest、排程頻率、公開摘要欄位或業務規則。
+  - 實跑證據：`tests/test_rule_audit.py` **60 passed in 0.36s**；audit／架構測試 **71 passed in 0.32s**；完整 pytest **575 passed in 3.55s**；`uv lock --check` 解析 94 packages，`uv pip check` 顯示 92 packages compatible；`py_compile`、sdist／wheel build、project skill 與 7 個異動文字檔行尾空白檢查全部通過。
+  - 成本與邊界：US$0；未重新連線官方來源、未讀取 `.env`、未呼叫模型或付費 API、未修改 manifest／核准狀態／業務規則，也未執行 Git。P3 工程與離線驗證完成，仍等待作者明確回覆「v0.2-P3 驗收通過」；未進入 P4。
+
+- **2026-07-23（P3 Windows 檔案身分邊界補強）**：
+  - CLI 的輸出互異與受保護目標判定，不再只依解析後路徑字串；現在同時使用平台正規化路徑與既有檔案身分，Windows 大小寫別名及指向同一檔案的 hard link 都會在讀檔與連線前拒絕。
+  - `.env` 明確列為禁止輸出目標；`.env.example` 不受影響。測試使用臨時檔與 hard link 驗證，不讀取專案 `.env`，並保存內容前後一致。
+  - 實跑證據：`tests/test_rule_audit.py` **64 passed in 0.36s**；audit／架構測試 **75 passed in 0.31s**；完整 pytest **579 passed in 3.38s**；`uv lock --check` 解析 94 packages，`uv pip check` 顯示 92 packages compatible，sdist／wheel build、`py_compile`、project skill 與 7 個異動文字檔行尾空白檢查全部通過。
+  - 成本與邊界：US$0；未連線官方來源、未讀取 `.env`、未呼叫模型或付費 API、未修改 manifest／核准狀態／業務規則，也未執行 Git。P3 仍等待作者明確驗收；未進入 P4。
+
+- **2026-07-23（P3 民眾首頁資訊層級收尾）**：
+  - 依作者回饋，移除 Gradio 首頁的法規快照版本、最後稽核日與 4／4 來源狀態卡；首頁標題後直接進入四步操作與資格初篩輸入，避免把開發／維運證據誤當成民眾需要理解的內容。
+  - 後端 checker、排程 workflow、最小公開摘要、`approved-audit-status-v1.json`、manifest 交叉檢查與 README 稽核說明均保留；本次只改變公開操作頁的呈現邊界。
+  - UI 單元與受控瀏覽器 smoke 改為驗證狀態卡、manifest 版本、稽核日期及來源計數均不在頁面，並持續確認沒有向官方法規網站發出即時請求。
+  - 實跑證據：UI／audit 測試 **75 passed in 2.68s**，完整 pytest **579 passed in 4.46s**；`uv lock --check` 解析 94 packages，`uv pip check` 顯示 92 packages compatible，`py_compile` 與更新後 project skill 驗證通過。以受控新連接埠分別執行桌面／手機、連續對話與 HITL 核准三條 Playwright smoke，均輸出 `UI_SMOKE_OK`；畫面確認標題後直接呈現「照這 4 步操作」，未出現稽核狀態卡，且沒有官方法規網站即時請求。
+  - 成本與邊界：US$0；未連線官方來源、未呼叫模型或付費 API、未讀取 `.env`、未修改 manifest／核准狀態／業務規則，也未執行 Git。P3 仍等待作者驗收；未進入 P4。
+  - Git：Agent 未執行任何 Git 指令。作者驗收後建議 commit：`fix(ui): 移除民眾首頁的法規稽核狀態卡`。
+
+- **2026-07-23（P3 多輪白話解析與重複追問修正）**：
+  - 根因不是 session 或對話紀錄遺失，而是確定性 intake parser 未辨識「都沒有」、「CMS 我不知道」、「不知道有沒有 CMS」、「自己可以完成」、「持續 3 天」與「一個人住小套房」等常見說法，使後續 guard 把已回答欄位誤列為缺漏。
+  - parser 現在支援共用否定、CMS 未知的前後置語序、日／週／月／年持續期間、一般住宅白話描述與可自行完成日常活動；仍採保守解析，不從模糊描述推估 CMS 或失能。
+  - deterministic follow-up 每輪會重新核對完整對話中的明確證據，排除已回答欄位，並依年齡、生活協助與期間、居住、資格身分、CMS 的順序一次只問一組，不再反覆貼出整份問題清單。
+  - 新增截圖原句回歸案例，確認四輪後保留年齡 70、無身障、無失智、可自行完成、期間 0 個完整月、居住社區與 CMS 未知；下一輪只問尚未回答的原住民與 PAC。
+  - 實跑證據：`tests/test_agent_phase2.py` **44 passed in 1.01s**；完整 pytest **582 passed in 3.55s**；`uv lock --check` 解析 94 packages，`uv pip check` 顯示 92 packages compatible，`py_compile` 通過。
+  - 成本與邊界：US$0；未呼叫模型或付費 API、未讀取 `.env`、未改資格／金額規則，也未執行 Git。P3 仍等待作者以本機介面重測；未進入 P4。
+  - Git：Agent 未執行任何 Git 指令。建議 commit：`fix(agent): 修正多輪資料解析與重複追問`。
+
+- **2026-07-23（P3「做很慢、希望有人幫助」語意修正）**：
+  - 作者實測發現「基本上可以自己進行，但做很慢，希望有人幫助」仍觸發同一組生活功能問題；根因是確定性 parser 只辨識「需要／不需要協助」等固定句型，未把「希望有人幫助」視為已回答協助需求。
+  - parser 現在將「希望／想要／需要有人幫助或幫忙」判定為有協助需求；該句送出後只剩持續期間缺漏，因此下一輪只問「持續幾個月」，不再重問洗澡、穿衣、吃飯、起身走動或如廁。
+  - 保留較保守的既有語意：「自己可以完成但如果有人幫忙更好」仍表示可自行完成，不會因出現「幫忙」兩字就錯判為失能。
+  - 新增作者原句回歸案例。精準測試 **3 passed, 42 deselected in 0.43s**；`tests/test_agent_phase2.py` **45 passed in 1.04s**；完整 pytest **583 passed in 3.99s**。
+  - 成本與邊界：US$0；未呼叫模型或付費 API、未讀取 `.env`、未改資格／金額規則，也未執行 Git。P3 等待作者重新啟動本機介面後重測。
+  - Git：Agent 未執行任何 Git 指令。作者驗收後建議 commit：`fix(agent): 辨識希望協助的生活功能回答`。
+
+- **2026-07-23（P3 重複追問修正作者本機驗收）**：
+  - 作者在新的本機服務程序實測「自己可以做但做得很慢、有人幫忙會更好」與一日持續期間；系統未再次詢問同一組生活功能問題，直接產生確定性報告草稿。
+  - 本機畫面證明新 parser 已接住協助需求與持續期間，重複追問回歸案例符合預期；作者回覆「目前沒什麼問題了」。
+  - 本項功能驗收通過，但依 P3 DoD，整個 v0.2-P3 仍等待作者以明確文字「v0.2-P3 驗收通過」核准進入 P4，未提前標記 Phase 完成。
+  - 成本與邊界：US$0；本次只有作者本機人工操作，Agent 未呼叫模型或付費 API、未讀取 `.env`、未修改規則，也未執行 Git。
+  - Git：待作者正式驗收後自行處理；建議 commit：`fix(agent): 辨識希望協助的生活功能回答`。
+
+- **2026-07-23（v0.2-P3 作者正式驗收）**：
+  - 作者明確回覆「v0.2-P3 驗收通過」；PLAN 的 P3 最後一項 DoD 已勾選，正式核准進入 v0.2-P4。
+  - 驗收涵蓋排程入口、最小公開摘要契約、民眾首頁資訊層級，以及多輪對話不重複追問的本機實測。
+  - P3 最終工程證據包含完整 pytest **583 passed**；本次只同步 Phase gate 文件，沒有重新執行測試、抓取官方來源或呼叫模型／付費 API，新增成本 US$0。
+  - 邊界：尚未開始 P4，未修改資格、額度、部分負擔、manifest 或核准狀態，也未讀取 `.env`。
+  - Git：Agent 未執行任何 Git 指令；待作者先回傳 `git status --short`，再依實際變更分組 commit 並同步 GitHub 與 Hugging Face Space。

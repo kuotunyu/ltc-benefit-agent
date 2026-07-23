@@ -48,6 +48,22 @@ uv run --group audit ltc-rule-audit `
 
 報告產生後須由作者檢查來源狀態、欄位差異、影響規則、建議測試、`project_consistency` 與 `writes_performed=false`。作者的 approve／reject 是人工 gate；兩種決定都不等於授權工具直接寫入規則。
 
+## P3 排程與公開證據
+
+- 排程只作為獨立的手動／低頻檢查入口，不得加入 Gradio 民眾請求路徑。
+- 完整稽核 JSON 只放 runner 暫存目錄；公開 artifact 只能由 `build_public_audit_summary` 產生固定白名單摘要。
+- 公開摘要必須由同一次新鮮的完整 manifest 線上稽核產生，恰好涵蓋全部來源，且 `source_id` 不得重複；`--source` 局部診斷與 `--input` 封存證據都不得搭配 `--public-output`。
+- `--output`、`--public-output`、`--review-output` 必須使用不同檔案身分，且不得指向 `--input`、manifest、核准狀態、`.env` 或 `rules.py`／`eligibility.py`／`copay.py`；Windows 大小寫別名與既有 hard link 也視為同一檔案，不安全組合必須在讀檔與連線前拒絕。
+- manifest、核准狀態與公開摘要都採 fail-closed schema：拒絕未知欄位、錯誤型別、空識別值與缺少時區的時間；不得以字串強制轉型掩蓋壞資料。
+- 線上 timeout 必須是有限且大於零的秒數；HTTP 成功範圍內但不是 `200` 的回應仍記為 `CHECK_UNAVAILABLE`，不得交給 extractor 猜測。
+- 公開摘要的每筆 `checked_at` 與整體 `generated_at` 都正規化為 UTC `Z`，並必須匹配非空 manifest 版本與完整來源集合。
+- 公開排程執行 CLI 時必須使用 `--quiet`，避免完整 JSON 出現在 Actions log；log 只保留來源 ID、三態狀態與輸出位置。
+- 公開摘要不得包含 canonical URL、raw／semantic hash、`changed_fields`、`errors`、HTTP 內容、原始附件、token、個資或對話。
+- `REVIEW_REQUIRED` 與 `CHECK_UNAVAILABLE` 都必須讓 job 失敗；不可用來源的嚴重度不得被其他一致來源掩蓋。
+- `approved-audit-status-v1.json` 是供開發與稽核使用的機器可讀人工核准狀態，不是最近一次排程結果，也不得呈現在公開 Gradio 民眾操作頁。只有 4／4 成功證據再經作者核准，才能另行更新；排程不得自動升格。
+- 核准狀態檔必須與正式 manifest 版本相符；限制與非官方保證邊界留在 README／契約文件，民眾對話不即時抓取法規。
+- 核准狀態或呈現邊界異動後，以受控 fixture 執行桌面、手機、多輪與 HITL 瀏覽器 smoke；確認民眾操作頁沒有 manifest 版本、稽核日期、來源計數、敏感證據欄位或水平溢出，並確認沒有向官方法規網站發出即時請求。
+
 ## 必要證據
 
 - `source_id`、標題、canonical URL、規則版本與來源生效日。

@@ -516,7 +516,6 @@ HEADER = """
 </div>
 """
 
-
 HOW_TO = """
 <div class="how-to">
   <h2>照這 4 步操作</h2>
