@@ -103,6 +103,17 @@ _WELFARE_CATEGORY_PATTERN = re.compile(
     r"|(?P<third>第三類|(?:長照)?一般戶)"
 )
 
+_COMMUNITY_RESIDENCE_PATTERN = re.compile(
+    r"住家裡|住在家(?:裡|中)?|居家|獨居|"
+    r"住(?:在)?(?:自己(?:的)?家|自家)(?:裡|中)?|"
+    r"(?:自己|獨自)住|(?:1|一)個人住|"
+    r"住(?:在)?[^，。；\n]{0,12}(?:套房|公寓|住宅|透天|自宅|家中|家裡)"
+)
+_RESIDENCE_EVIDENCE_PATTERN = re.compile(
+    rf"住宿式機構|團體家屋|{_COMMUNITY_RESIDENCE_PATTERN.pattern}"
+)
+
+
 _FIELD_EVIDENCE_PATTERNS: dict[str, re.Pattern[str]] = {
     "age": re.compile(r"年齡|\d{1,3}\s*歲"),
     "indigenous": re.compile(r"原住民"),
@@ -118,11 +129,7 @@ _FIELD_EVIDENCE_PATTERNS: dict[str, re.Pattern[str]] = {
     "impairment_duration_months": re.compile(
         r"\d+\s*(?:天|日|週|周|星期|個?月|年)|半年|一年"
     ),
-    "residence_status": re.compile(
-        r"住家裡|住在家|居家|住宿式機構|團體家屋|獨居|"
-        r"(?:自己|獨自)住|(?:1|一)個人住|"
-        r"住(?:在)?[^，。；\n]{0,12}(?:套房|公寓|住宅|透天|自宅|家中|家裡)"
-    ),
+    "residence_status": _RESIDENCE_EVIDENCE_PATTERN,
     "official_cms_level": re.compile(r"CMS", re.IGNORECASE),
 }
 
@@ -350,16 +357,7 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
             facts["residence_status"] = "RESIDENTIAL_INSTITUTION"
         elif "團體家屋" in text:
             facts["residence_status"] = "GROUP_HOME"
-        elif (
-            "住家裡" in text
-            or "住在家裡" in text
-            or "居家" in text
-            or re.search(
-                r"(?:獨居|(?:自己|獨自)住|(?:1|一)個人住|"
-                r"住(?:在)?[^，。；\n]{0,12}(?:套房|公寓|住宅|透天|自宅|家中|家裡))",
-                text,
-            )
-        ):
+        elif _COMMUNITY_RESIDENCE_PATTERN.search(text):
             facts["residence_status"] = "COMMUNITY"
 
     cms_was_stated, cms_level = explicit_cms_intent(messages)
@@ -693,7 +691,10 @@ def _guard_model_response(
                     message.model_copy(
                         update={
                             "content": _missing_followup(
-                                request.messages, eligibility_payload
+                                request.messages,
+                                eligibility_payload,
+                                explicit_eligibility=explicit_eligibility,
+                                explicit_copay=explicit_copay,
                             )
                         }
                     )
@@ -964,17 +965,27 @@ def _intake_prompt(messages: list[BaseMessage]) -> str | None:
     return "\n".join(lines)
 
 
-def _missing_followup(messages: list[BaseMessage], payload: dict[str, Any]) -> str:
+def _missing_followup(
+    messages: list[BaseMessage],
+    payload: dict[str, Any],
+    *,
+    explicit_eligibility: dict[str, Any] | None = None,
+    explicit_copay: dict[str, Any] | None = None,
+) -> str:
     missing_fields = [str(field) for field in payload.get("missing_fields", [])]
     if not missing_fields:
         return "請補充尚未提供的資格初篩資料。"
 
-    # 工具回傳的 missing_fields 可能仍含使用者剛在同一輪補上的欄位。
-    # 先以完整對話重新擷取明確事實，避免把已回答內容再次列入問題。
-    explicit_facts = {
-        **_explicit_eligibility_facts(messages),
-        **_explicit_copay_facts(messages),
-    }
+    # 工具回傳的 missing_fields 可能仍含使用者先前或剛在同一輪補上的欄位。
+    # 先合併 middleware 累積的 state facts，再以目前可見訊息更新，避免模型
+    # 節點的訊息視窗縮減時把已回答內容再次列入問題。
+    explicit_facts: dict[str, Any] = {}
+    if isinstance(explicit_eligibility, dict):
+        explicit_facts.update(explicit_eligibility)
+    if isinstance(explicit_copay, dict):
+        explicit_facts.update(explicit_copay)
+    explicit_facts.update(_explicit_eligibility_facts(messages))
+    explicit_facts.update(_explicit_copay_facts(messages))
     unanswered = [field for field in missing_fields if field not in explicit_facts]
     if not unanswered:
         return "我已記下這些資料，正在重新檢查資格初篩條件。"
@@ -1108,7 +1119,29 @@ class CaseIntakeMiddleware(AgentMiddleware):
         payload = _tool_payload(eligibility[1]) if eligibility is not None else None
         if not payload or payload.get("status") != "INSUFFICIENT_INFORMATION":
             return None
-        return {"messages": [AIMessage(content=_missing_followup(messages, payload))]}
+        state_mapping = state if isinstance(state, dict) else {}
+        explicit_eligibility = state_mapping.get(
+            "case_explicit_eligibility_facts", {}
+        )
+        explicit_copay = state_mapping.get("case_explicit_copay_facts", {})
+        return {
+            "messages": [
+                AIMessage(
+                    content=_missing_followup(
+                        messages,
+                        payload,
+                        explicit_eligibility=(
+                            explicit_eligibility
+                            if isinstance(explicit_eligibility, dict)
+                            else {}
+                        ),
+                        explicit_copay=(
+                            explicit_copay if isinstance(explicit_copay, dict) else {}
+                        ),
+                    )
+                )
+            ]
+        }
 
 
 __all__ = [
