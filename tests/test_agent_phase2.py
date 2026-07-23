@@ -20,6 +20,7 @@ from pydantic import Field
 from ltc_benefit_agent.agent.config import AgentProvider, AgentSettings
 from ltc_benefit_agent.agent.factory import build_agent_runtime, build_chat_model
 from ltc_benefit_agent.agent.intake import (
+    _missing_followup,
     explicit_cms_intent,
     merge_explicit_case_facts,
 )
@@ -898,6 +899,8 @@ def test_public_unknown_cms_wording_cannot_be_guessed_as_level_two() -> None:
         ("CMS 2 至 8 級參考表", (False, None)),
         ("CMS 2–8 級參考表", (False, None)),
         ("尚未接受正式 CMS 評估，不知道 CMS 等級。", (True, None)),
+        ("CMS 我不知道。", (True, None)),
+        ("不知道有沒有 CMS。", (True, None)),
     ],
 )
 def test_explicit_cms_intent_distinguishes_level_unknown_and_reference_range(
@@ -931,12 +934,85 @@ def test_intake_guard_returns_deterministic_missing_information_followup() -> No
 
     assert not result.awaiting_approval
     assert "需要他人協助" in result.latest_text
-    assert "住家裡" in result.latest_text
-    assert "正式 CMS" in result.latest_text
-    assert "長照需要等級" in result.latest_text
-    assert "尚未評估可直接說不知道" in result.latest_text
+    assert "持續幾個月" in result.latest_text
+    assert "住家裡" not in result.latest_text
+    assert "正式核定" not in result.latest_text
+    assert "先回答這一組即可" in result.latest_text
     assert result.state["workflow_guard_nudge_count"] == 0
     assert model.call_count == 2
+
+
+def test_multi_turn_plain_language_answers_are_not_repeated_as_missing() -> None:
+    messages = [
+        HumanMessage(content="家人 70 歲，走路可能不方便。"),
+        HumanMessage(content="身心障礙證明、醫師確診失智都沒有，CMS 我不知道。"),
+        HumanMessage(content="自己可以完成但如果有人幫忙更好，持續 3 天。"),
+        HumanMessage(
+            content="1 個人住台北小套房，自己可以完成但如果有人幫忙更好，"
+            "不知道有沒有 CMS。"
+        ),
+    ]
+    eligibility: dict[str, Any] = {}
+    copay: dict[str, Any] = {}
+    for message in messages:
+        eligibility, copay = merge_explicit_case_facts(
+            str(message.content),
+            previous_eligibility=eligibility,
+            previous_copay=copay,
+        )
+
+    assert eligibility["age"] == 70
+    assert eligibility["has_disability_certificate"] is False
+    assert eligibility["has_dementia_diagnosis"] is False
+    assert eligibility["has_functional_impairment"] is False
+    assert eligibility["impairment_duration_months"] == 0
+    assert eligibility["residence_status"] == "COMMUNITY"
+    assert eligibility["official_cms_level"] is None
+
+    followup = _missing_followup(
+        messages,
+        {
+            "missing_fields": [
+                "has_functional_impairment",
+                "impairment_duration_months",
+                "residence_status",
+                "indigenous",
+                "has_disability_certificate",
+                "has_dementia_diagnosis",
+                "is_pac_case",
+                "official_cms_level",
+            ]
+        },
+    )
+    assert "是否為原住民" in followup
+    assert "PAC" in followup
+    assert "洗澡、穿衣、吃飯" not in followup
+    assert "持續幾個月" not in followup
+    assert "住家裡" not in followup
+    assert "身心障礙證明" not in followup
+    assert "確診失智" not in followup
+    assert "正式核定" not in followup
+
+
+def test_slow_but_wants_help_answers_assistance_without_repeating_group() -> None:
+    text = "基本上可以自己進行，但做很慢，希望有人幫助"
+
+    eligibility, _ = merge_explicit_case_facts(text)
+
+    assert eligibility["has_functional_impairment"] is True
+    assert "impairment_duration_months" not in eligibility
+
+    followup = _missing_followup(
+        [HumanMessage(content=text)],
+        {
+            "missing_fields": [
+                "has_functional_impairment",
+                "impairment_duration_months",
+            ]
+        },
+    )
+    assert "持續幾個月" in followup
+    assert "洗澡、穿衣、吃飯" not in followup
 
 
 def test_intake_guard_reprompts_model_once_for_missing_initial_tool_call() -> None:
@@ -1006,7 +1082,8 @@ def test_intake_guard_keeps_cross_turn_facts_and_blocks_premature_copay() -> Non
 
     assert not first.awaiting_approval
     assert "需要協助" in first.latest_text
-    assert "正式 CMS" in first.latest_text
+    assert "正式 CMS" not in first.latest_text
+    assert "先回答這一組即可" in first.latest_text
 
     pending = service.send_message(
         "thread-intake-guard",

@@ -71,8 +71,13 @@ _CMS_UNKNOWN_PATTERNS = (
         re.IGNORECASE,
     ),
     re.compile(
+        r"(?:不知道|不清楚|未知|尚不確定|無法確認)\s*(?:自己)?\s*"
+        r"(?:有沒有|是否有)?\s*(?:正式)?\s*CMS(?:\s*等級)?",
+        re.IGNORECASE,
+    ),
+    re.compile(
         r"(?<![A-Za-z])CMS(?:\s*等級)?\s*"
-        r"(?:未知|不知道|不清楚|尚未評估|未評估|不確定)",
+        r"(?:我|本人)?\s*(?:未知|不知道|不清楚|尚未評估|未評估|不確定)",
         re.IGNORECASE,
     ),
     re.compile(
@@ -84,9 +89,9 @@ _DURATION_PATTERNS = (
     re.compile(
         r"(?:失能|生活需要協助|需要生活協助|需要(?:他人)?協助|"
         r"生活協助需求|協助需求|需求)"
-        r"\s*(?:已|持續|只有)?\s*(\d+)\s*(?:個)?月"
+        r"\s*(?:已|持續|只有)?\s*(\d+)\s*(天|日|週|周|星期|個?月|年)"
     ),
-    re.compile(r"(?:已|持續)\s*(\d+)\s*(?:個)?月"),
+    re.compile(r"(?:已|持續|大約|約|只有)\s*(\d+)\s*(天|日|週|周|星期|個?月|年)"),
 )
 _PLANNED_SPEND_PATTERN = re.compile(
     r"(?:預計(?:每月)?服務費|這個月預計服務費|服務費|預計服務)"
@@ -106,10 +111,18 @@ _FIELD_EVIDENCE_PATTERNS: dict[str, re.Pattern[str]] = {
     "is_pac_case": re.compile(r"PAC|急性後期照護|出院準備", re.IGNORECASE),
     "has_functional_impairment": re.compile(
         r"失能|生活協助|需要(?:他人)?協助|不需要(?:他人)?協助|"
-        r"洗澡|穿衣|吃飯|走動|如廁"
+        r"洗澡|穿衣|吃飯|走動|如廁|"
+        r"(?:自己|自行|獨立).{0,8}(?:進行|完成|處理|做)|"
+        r"(?:希望|想要|需要).{0,6}(?:有人|他人)?(?:幫助|幫忙)"
     ),
-    "impairment_duration_months": re.compile(r"\d+\s*(?:個)?月|半年|一年"),
-    "residence_status": re.compile(r"住家裡|住在家|居家|住宿式機構|團體家屋"),
+    "impairment_duration_months": re.compile(
+        r"\d+\s*(?:天|日|週|周|星期|個?月|年)|半年|一年"
+    ),
+    "residence_status": re.compile(
+        r"住家裡|住在家|居家|住宿式機構|團體家屋|獨居|"
+        r"(?:自己|獨自)住|(?:1|一)個人住|"
+        r"住(?:在)?[^，。；\n]{0,12}(?:套房|公寓|住宅|透天|自宅|家中|家裡)"
+    ),
     "official_cms_level": re.compile(r"CMS", re.IGNORECASE),
 }
 
@@ -247,11 +260,20 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
                 (r"是原住民", r"(?<!不)(?<!非)原住民"),
             ),
             "has_disability_certificate": (
-                (r"沒有身(?:心)?障", r"無身(?:心)?障"),
+                (
+                    r"沒有身(?:心)?障",
+                    r"無身(?:心)?障",
+                    r"(?:身心障礙證明|身障證明|身心障礙)[^。；\n]{0,20}(?:都)?沒有",
+                ),
                 (r"有身心障礙證明", r"領有身心障礙證明", r"有身障證明"),
             ),
             "has_dementia_diagnosis": (
-                (r"沒有失智", r"沒有[^，。；]{0,8}失智", r"無失智"),
+                (
+                    r"沒有失智",
+                    r"沒有[^，。；]{0,8}失智",
+                    r"無失智",
+                    r"(?:醫師)?(?:確診|診斷)?失智[^。；\n]{0,12}(?:都)?沒有",
+                ),
                 (r"確診失智", r"有失智診斷", r"醫師.*失智"),
             ),
             "is_pac_case": (
@@ -265,11 +287,18 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
                 (r"是.*PAC.*個案", r"PAC\s*個案", r"出院準備\s*PAC"),
             ),
             "has_functional_impairment": (
-                (r"不需要(?:他人)?協助", r"無需(?:他人)?協助", r"沒有失能"),
+                (
+                    r"不需要(?:他人)?協助",
+                    r"無需(?:他人)?協助",
+                    r"沒有失能",
+                    r"(?:自己|自行|獨立)(?:都)?可以(?:完成|處理|做|進行)",
+                    r"可以(?:自己|自行|獨立)(?:完成|處理|做|進行)",
+                ),
                 (
                     r"生活(?<!不)需要協助",
                     r"(?<!不)需要生活協助",
                     r"(?<!不)需要(?:他人)?協助",
+                    r"(?:希望|想要|需要).{0,6}(?:有人|他人)?(?:幫助|幫忙)",
                     r"生活協助需求",
                     r"目前需要協助",
                     r"失能\s*\d+\s*(?:個)?月",
@@ -304,14 +333,33 @@ def _explicit_eligibility_facts(messages: list[BaseMessage]) -> dict[str, Any]:
 
         for pattern in _DURATION_PATTERNS:
             if match := pattern.search(text):
-                facts["impairment_duration_months"] = int(match.group(1))
+                value = int(match.group(1))
+                unit = match.group(2)
+                if unit in {"天", "日"}:
+                    months = value // 30
+                elif unit in {"週", "周", "星期"}:
+                    months = (value * 7) // 30
+                elif unit == "年":
+                    months = value * 12
+                else:
+                    months = value
+                facts["impairment_duration_months"] = months
                 break
 
         if "住宿式機構" in text:
             facts["residence_status"] = "RESIDENTIAL_INSTITUTION"
         elif "團體家屋" in text:
             facts["residence_status"] = "GROUP_HOME"
-        elif "住家裡" in text or "住在家裡" in text or "居家" in text:
+        elif (
+            "住家裡" in text
+            or "住在家裡" in text
+            or "居家" in text
+            or re.search(
+                r"(?:獨居|(?:自己|獨自)住|(?:1|一)個人住|"
+                r"住(?:在)?[^，。；\n]{0,12}(?:套房|公寓|住宅|透天|自宅|家中|家裡))",
+                text,
+            )
+        ):
             facts["residence_status"] = "COMMUNITY"
 
     cms_was_stated, cms_level = explicit_cms_intent(messages)
@@ -917,26 +965,46 @@ def _intake_prompt(messages: list[BaseMessage]) -> str | None:
 
 
 def _missing_followup(messages: list[BaseMessage], payload: dict[str, Any]) -> str:
-    missing = [
-        _FIELD_LABELS.get(str(field), str(field))
-        for field in payload.get("missing_fields", [])
-    ]
-    if not missing:
+    missing_fields = [str(field) for field in payload.get("missing_fields", [])]
+    if not missing_fields:
         return "請補充尚未提供的資格初篩資料。"
-    question = "請再補充：" + "；".join(missing) + "。"
-    latest_user = _latest_human_text(messages)
-    if "CMS" in latest_user.upper() or "試算" in latest_user:
-        question += (
-            "若已有正式 CMS（照管中心核定的長照需要等級，第 2–8 級），也請一併說明"
-            "福利身分類別、是否有外籍看護與預計服務費；"
-            "尚未評估可直接說不知道。"
-        )
-    else:
-        question += (
-            "若已有正式 CMS（照管中心核定的長照需要等級，第 2–8 級）也可一併提供；"
-            "尚未評估可直接說不知道。"
-        )
-    return question
+
+    # 工具回傳的 missing_fields 可能仍含使用者剛在同一輪補上的欄位。
+    # 先以完整對話重新擷取明確事實，避免把已回答內容再次列入問題。
+    explicit_facts = {
+        **_explicit_eligibility_facts(messages),
+        **_explicit_copay_facts(messages),
+    }
+    unanswered = [field for field in missing_fields if field not in explicit_facts]
+    if not unanswered:
+        return "我已記下這些資料，正在重新檢查資格初篩條件。"
+
+    # 一次只追問一組相近資訊，避免把整張表單反覆丟回給使用者。
+    question_groups = (
+        ("age",),
+        ("has_functional_impairment", "impairment_duration_months"),
+        ("residence_status",),
+        (
+            "indigenous",
+            "has_disability_certificate",
+            "has_dementia_diagnosis",
+            "is_pac_case",
+        ),
+        ("official_cms_level",),
+    )
+    selected: list[str] = []
+    for group in question_groups:
+        selected = [field for field in group if field in unanswered]
+        if selected:
+            break
+    if not selected:
+        selected = unanswered[:2]
+
+    missing = [_FIELD_LABELS.get(field, field) for field in selected]
+    return (
+        "請先補充：" + "；".join(missing) + "。"
+        "先回答這一組即可；不知道的項目可直接說不知道。"
+    )
 
 
 class CaseIntakeMiddleware(AgentMiddleware):
