@@ -6,7 +6,7 @@
 
 ## 結論
 
-Phase 0–4、GitHub 公開倉庫與 Hugging Face Space 均已完成並通過公開驗收。資格與金額規則、Agent／PII／HITL、三模式評估基礎、Gradio、三份對話範例、公開 CI、已知 CMS 試算、unknown CMS 防誤判與單次核准發布都有可重跑或公開端到端證據。剩餘事項只有可選的同版雲端 20 題重跑，以及作者自行決定是否建立 `phase-4` tag／Release；兩者都不是功能或發布缺口。
+Phase 0–4、GitHub 公開倉庫、Hugging Face Space 與 GitHub Release 均已完成並通過公開驗收。資格與金額規則、Agent／PII／HITL、三模式評估基礎、Gradio、三份對話範例、公開 CI、已知 CMS 試算、unknown CMS 防誤判與單次核准發布都有可重跑或公開端到端證據。`phase-4` annotated tag 已指向 `2669eec`，對應 Release 已標示為 `Latest`。剩餘事項只有可選的同版雲端 20 題重跑，不是功能或發布缺口。
 
 ## Requirement matrix
 
@@ -33,7 +33,7 @@ Phase 0–4、GitHub 公開倉庫與 Hugging Face Space 均已完成並通過公
 ## 尚待作者或另行核准
 
 1. 若要公平比較目前三模式，新版雲端固定 20 題已按 8 calls／題、12k input／3k output 與當日單價重估為 **US$1.776** 上限；必須取得明確核准後才執行。現有雲端 `7 / 20` 僅是舊 workflow 歷史基線。
-2. 作者可自行決定是否建立 `phase-4` tag／Release；這是發布里程碑，不是程式功能缺口。
+2. `phase-4` tag／Release 已完成；後續開發應另開新版本，不移動或覆寫這個公開里程碑。
 
 ## 可重跑的核心命令
 

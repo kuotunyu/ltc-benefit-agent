@@ -17,10 +17,14 @@ short_description: 可稽核的台灣長照 2.0 資格初篩與補助試算
 > **可驗證、可稽核的台灣長照 2.0 資格初篩與補助試算 Agent**
 
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-185A45?style=flat-square)
-![tests 498 passed](https://img.shields.io/badge/tests-498%20passed-185A45?style=flat-square)
+![tests 514 passed](https://img.shields.io/badge/tests-514%20passed-185A45?style=flat-square)
 [![CI](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml)
 ![License MIT](https://img.shields.io/badge/license-MIT-4B5D55?style=flat-square)
 ![UI Gradio](https://img.shields.io/badge/UI-Gradio-4B5D55?style=flat-square)
+
+[線上操作](https://huggingface.co/spaces/steven0226/ltc-benefit-agent) ·
+[Phase 4 Release](https://github.com/kuotunyu/ltc-benefit-agent/releases/tag/phase-4) ·
+[原始碼](https://github.com/kuotunyu/ltc-benefit-agent)
 
 **對話交給模型；資格與金額交給 Python；最終報告交給人確認。LLM 不算錢。**
 
