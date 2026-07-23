@@ -2,21 +2,21 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；公開 Space `dcb45a9` 為 `RUNNING`。已知 CMS／一般戶／單次核准案例通過；unknown CMS 公開案例抓到「2 至 8 級參考表」被誤判為 CMS 2 的缺陷，本機修正與測試已完成，尚待作者部署複驗。
-- **本次完成**：CMS parser 現在區分正式個人等級、明確 unknown 與 2–8 參考範圍；unknown 會鎖定 `official_cms_level=null`，model response／tool call 兩層都禁止個人 `copay_estimate`。同句同時列出需協助與不需協助活動時，只要有一項明確需協助即保留失能需求。
-- **實跑總證據**：公開 `dcb45a9` 的 unknown CMS smoke **失敗**，截圖顯示錯誤 CMS 2／第三類／16%／政府給付 8,417 元／自付 1,603 元，作者未核准。修正後以相同完整原句及故意猜 CMS 2 的假模型回歸，成功工具僅 `eligibility_check → build_report_draft`；`uv lock --check`、完整 pytest **514 passed in 3.22s**、sdist／wheel build 均成功。
+- **現在做到哪**：Phase 1–4 與規則人工校對 5／5 完成；公開 Space 已可運作。unknown CMS 防誤判、CMS 白話說明、常駐多輪聊天面板與對話中的精簡 4 步提示已在本機完成，作者已於 7860 完成 UI/UX 視覺驗收，待自行提交與部署。
+- **本次完成**：初始頁保留完整操作說明；開始對話後，聊天面板頂端固定顯示精簡 4 步提示。提示已從純文字橫排改善為低彩度面板、狀態點與四張編號步驟卡；桌面一列、390 px 手機 2×2。
+- **實跑總證據**：unknown CMS 修正以故意猜 CMS 2 的假模型回歸，成功工具僅 `eligibility_check → build_report_draft`。本輪先發現 7862 已由 `5_doc-inspector` 使用，未停止或修改該程序，改用空閒 17870 完成桌機／390 px 手機多輪 smoke；提示在兩種尺寸均持續可見、無水平溢出，輸出 `UI_SMOKE_OK`。測試後核對並只終止本輪 `ui_fixture_app.py` PID，17870 已釋放。`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.14s**、sdist／wheel build 均成功。
 - **Context7**：以 `/websites/langchain_oss_python` 再確認 `AgentMiddleware.state_schema`、`ModelRequest.override` 與 `wrap_tool_call` 的現行介面後實作雙層 guard；既有 Gradio 查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 由作者提交並同步本輪 unknown CMS 修正至 GitHub／Space；待 Space 回到 Running 後以同一完整原句重新驗證，不得出現個人 CMS、政府給付或合計自付。
-  2. 以手機寬度完成公開 UI smoke，確認輸入、追問、報告校閱與核准操作可用。
+  1. 由作者自行提交本輪修正，依序同步至 GitHub／Space。
+  2. 待 Space 回到 Running 後，用 unknown CMS 完整原句複驗不得出現個人 CMS、政府給付或合計自付，並確認完整對話不需展開、每輪都能在面板下方接續回答，且提示列持續可見。
   3. 若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限；完成公開 smoke 後再決定 `phase-4` tag／Release。
 - **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：本輪 `intake.py`、`workflow.py`、Agent 測試與 PLAN／PROGRESS 待作者自行提交，再依序 Push `origin`／`space`。Agent 未執行任何 Git 指令。
+- **待使用者 Git 操作**：本輪 CMS 白話說明、常駐聊天面板與精簡 4 步提示相關程式、測試及 PLAN／PROGRESS 待作者自行提交，再依序 Push `origin`／`space`。Agent 未執行任何 Git 指令。
 - **⚠️ 已知坑**：CMS 範圍文字不能用單一等級 regex 截取；Space SSR 不宜用 `request.session_hash` 作跨事件唯一鍵；Gradio 6 對事件來源 Button 的 `visible=False` 不可靠；福利類別與版本比較仍須走確定性正規化；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
@@ -517,3 +517,38 @@
   - 同一公開句子同時含「洗澡、穿衣需要協助」與「吃飯、走動、如廁不需要協助」，也揭露舊 boolean parser 的負向片段可能蓋過正向需求；修正為有任一項明確需協助即為 True，只有純負向敘述才為 False，並補上「住在家裡」字面辨識。
   - 回歸假模型刻意送出 CMS 2 並嘗試呼叫金額工具；實際成功 trace 只有 `eligibility_check → build_report_draft`，資格 artifact 的 CMS 為 null，草稿顯示「CMS 未知：僅提供額度參考」、完整 2–8 表，且沒有政府給付或合計自付。相關 8 passed、Agent **41 passed in 0.97s**。
   - 最終證據：依 Context7 `/websites/langchain_oss_python` 查證 middleware 現行 API；`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.22s**、sdist／wheel build 均成功。沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git。建議 commit：`fix(agent): 阻止未知 CMS 被誤判為個人等級`。
+
+- **2026-07-23（CMS 白話說明與回答提示）**：
+  - 首頁 4 步操作後加入一段緊湊提示：CMS 是照管中心評估後核定的長照需要等級（第 2–8 級）；尚未評估可直接回答「不知道」，系統不會代猜。
+  - 確定性缺漏追問改為先說「長照需要等級」再補 CMS 名稱；unknown CMS 報告與草稿狀態也重複一次短定義，讓使用者不必回頭找說明。
+  - 依 `impeccable` 的 clarify／product 原則採用就地說明與漸進揭露，不新增大型說明卡。針對 UI／Agent 測試 **52 passed in 2.83s**；`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.20s**、sdist／wheel build 均成功。
+  - 沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git。建議 commit：`fix(ui): 補充 CMS 白話說明與回答提示`。
+
+- **2026-07-23（多輪回答操作引導）**：
+  - 依使用者首次送出後的實際截圖，將追問標題改為「目前這一題」，並把回答欄集中成獨立的「下一步：在這裡回答」操作區；明示可以分多次補充，按鈕改為「送出回答，繼續下一題」。
+  - 每次開始或送出回答後，以 Gradio 6 的前端 `.then(fn=None, js=...)` callback 將焦點移回可見的回答欄；依 Context7 `/gradio-app/gradio/gradio_6.0.1` 確認 `Textbox.autofocus` 與事件 listener 的現行用法後實作。
+  - 獨立 fixture 使用 7862，不影響作者的 7860；桌機與 390 px 手機多輪 smoke 均通過，第一輪與第二輪追問後輸入欄皆取得焦點，結果為 `UI_SMOKE_OK`。測試服務已關閉，沒有停止作者的既有程式。
+  - 最終證據：`uv lock --check`、相關 UI／Agent 模組 `py_compile`、完整 pytest **514 passed in 3.33s**、sdist／wheel build 均成功。沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git；建議 commit：`fix(ui): 強化 CMS 說明與多輪回答引導`。
+
+- **2026-07-23（常駐聊天面板與直接多輪操作）**：
+  - 依作者實際操作回饋，移除「目前這一題」獨立卡片與「查看完整對話紀錄」折疊層；改為單一常駐 Chatbot，user／assistant 訊息以 bubble transcript 直接顯示，回答欄與送出按鈕固定整合在同一面板下緣。
+  - 依 `impeccable` 的 clarify／product 原則收斂為唯一主要路徑；再以 Context7 `/gradio-app/gradio/gradio_6.0.1` 核對 `Chatbot` 的 `messages`、`autoscroll`、`layout`、高度與事件現行 API。前端 callback 會找出實際可捲動容器、移至最新訊息，再聚焦回答欄。
+  - Playwright fixture 使用獨立 7862，連續送出兩輪後不點擊任何展開控制即可看到完整上下文、第二筆使用者回答與下一個系統問題；桌機／390 px 手機截圖完成，輸出 `UI_SMOKE_OK`、console 0 error。測試中發現一個由本輪 helper 遺留的舊 fixture PID，核對 command line 為 `scripts/ui_fixture_app.py` 後只終止該測試程序並釋放 7862，未碰作者的 7860 或其他程序。
+  - 最終證據：UI 專屬 **11 passed**；`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.26s**、sdist／wheel build 均成功。沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git；建議 commit：`fix(ui): 改為常駐多輪聊天介面`。
+
+- **2026-07-23（對話中的精簡 4 步提示）**：
+  - 初始頁仍顯示包含 CMS 與個資提醒的完整操作說明；開始對話後，聊天面板頂端改用緊湊提示列持續呈現「看最新問題、在下方回答、不知道就說不知道、資料齊全後確認報告」。
+  - 桌面版以標題加四欄橫向排列；900 px 以下自動變成標題加 2×2 步驟，不增加折疊操作，提示與主要對話使用同一 960 px 寬度。
+  - 依 `frontend-design` 的產品介面原則維持既有平靜、可信配色；再用 Context7 `/gradio-app/gradio/gradio_6.0.1` 確認 `Markdown`、`elem_id`、`visible` 與 CSS 選擇器的現行介面。
+  - UI pytest **11 passed in 2.23s**；獨立 7862 fixture 的桌機／390 px 手機多輪 smoke 為 `UI_SMOKE_OK`、console 0 error，兩種尺寸均驗證提示文字、最大高度及無水平溢出。helper 遺留的 listener 經 PID 與 command line 核對為 `scripts/ui_fixture_app.py` 後只終止該測試程序，7862 已釋放。
+  - 最終證據：`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.33s**、sdist／wheel build 均成功。沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git；建議 commit：`fix(ui): 在多輪對話保留精簡操作提示`。
+
+- **2026-07-23（精簡步驟導覽視覺調整）**：
+  - 依作者本機截圖，將原本容易不規則斷行的純文字提示列改為四張等寬步驟卡；每張卡以淡綠編號圓點建立掃讀順序，外層使用低彩度漸層、細框與極淡陰影，沒有新增裝飾圖示或動畫。
+  - 桌面維持四欄，900 px 以下改為 2×2；桌面正文 18 px、手機 17 px，與既有高齡友善字級及綠色產品語彙一致。
+  - 依 `frontend-design` 的 refined minimal 方向調整；Context7 `/gradio-app/gradio/gradio_6.0.1` 再確認 `gr.Markdown` 的 `elem_id` 與自訂 CSS 範圍。
+  - UI pytest **11 passed in 2.20s**。瀏覽器檢查前發現原預定 7862 已由 `5_doc-inspector` 使用，因此沒有停止該程序，改用已確認空閒的 17870；桌機／390 px 手機多輪 smoke 均為 `UI_SMOKE_OK`、console 0 error。結束後只終止命令列確認為本輪 `scripts/ui_fixture_app.py` 的 PID，17870 已釋放。
+  - 最終證據：`uv lock --check`、相關模組 `py_compile`、完整 pytest **514 passed in 3.14s**、sdist／wheel build 均成功。沒有呼叫付費模型、沒有讀取 `.env`、沒有執行 Git；建議 commit 維持：`fix(ui): 在多輪對話保留精簡操作提示`。
+  - 作者已在本機 7860 實際看到最終桌面畫面，確認「UI/UX 的部分沒問題」；因此本輪由「工程完成，待驗收」更新為「本機視覺驗收通過」。公開 Space 仍待作者提交與重新部署後複驗。
+  - 依作者最後微調，首頁 CMS 說明移除「不知道 CMS 沒關係：」前綴，直接以 CMS 定義開頭，減少不必要的文案層級。
+  - 作者再次檢查 CMS 文案微調後的本機畫面，確認 UI/UX 最終無問題；本機 UI/UX 驗收正式完成，下一步由作者自行提交並同步 GitHub／Hugging Face Space。
