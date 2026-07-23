@@ -4,11 +4,11 @@
 
 ## 目前公開狀態（2026-07-23）
 
-- GitHub 與 Hugging Face Space 已同步至 `55e872f`；Space 為 Running。
-- GitHub Actions 對該 commit 顯示成功。
+- 功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 均已推送至 GitHub 與 Hugging Face Space；Space 為 Running。
+- GitHub Actions 對上述兩個 commit 均顯示成功。
 - 公開 Space 已通過已知 CMS 試算、unknown CMS 參考表與單次 HITL 核准發布。
 - 最終本機驗證為 `uv lock --check`、91 packages compatible、pytest **514 passed in 4.64s**、sdist／wheel build 與離線 CLI approve 成功。
-- 目前只需提交本次最終文件同步；`phase-4` tag／Release 與同版雲端 20 題皆為可選事項。
+- 功能與公開驗收文件均已完成；`phase-4` tag／Release 與同版雲端 20 題皆為可選事項。
 
 ## 1. 本機最後驗證
 

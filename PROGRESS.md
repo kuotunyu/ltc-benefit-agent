@@ -4,19 +4,18 @@
 
 - **現在做到哪**：Phase 0–4、規則人工校對 5／5、GitHub 公開倉庫與 Hugging Face Space 均完成；常駐多輪聊天、CMS 白話說明、unknown CMS 防誤判、已知 CMS 金額試算與 HITL 核准都已通過公開端到端驗收。
 - **本次完成**：公開 Space 以 unknown CMS 情境複驗，畫面只顯示 CMS 2–8 額度參考表、1966 與申請流程，沒有猜個人 CMS、政府給付或合計自付；單次核准後顯示「已核准並發布」。
-- **實跑總證據**：`uv lock --check`、`uv pip check`、完整 pytest **514 passed in 4.64s**、sdist／wheel build 與離線 CLI approve 均成功；GitHub Actions 對目前公開 commit `55e872f` 顯示成功。
+- **實跑總證據**：`uv lock --check`、`uv pip check`、完整 pytest **514 passed in 4.64s**、sdist／wheel build 與離線 CLI approve 均成功；功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 的 GitHub Actions 均成功。
 - **Context7**：以 `/websites/langchain_oss_python` 再確認 `AgentMiddleware.state_schema`、`ModelRequest.override` 與 `wrap_tool_call` 的現行介面後實作雙層 guard；既有 Gradio 查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 由作者自行提交本次最終文件同步並 Push GitHub／Space。
-  2. 確認該文件 commit 的 GitHub Actions 成功後，可自行建立 `phase-4` tag／Release。
-  3. 若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限；這是可選評估，不阻擋 Phase 4 完成。
+  1. 可由作者自行建立 `phase-4` tag／Release，作為公開里程碑。
+  2. 若要取得新版雲端固定 20 題成績，另行核准 US$1.776 上限；這是可選評估，不阻擋 Phase 4 完成。
 - **成本**：作者手動 Space 對話已呼叫 Gemini，但目前沒有可取得的 usage metadata，實際成本以帳單為準；Agent 本輪沒有另發付費請求。既有 connector smoke 約 US$0.0001583；新版 20 題上限 US$1.776，尚未核准或執行。
 - **待使用者人工處理**：Space 已保存 `GEMINI_MODEL`、`GEMINI_THINKING_LEVEL` 與遮蔽的 `GEMINI_API_KEY`；目前不要新增 backup key。任何後續雲端 20 題仍需另行核准成本。
-- **待使用者 Git 操作**：只剩本次最終 PROGRESS／完成度稽核／發布清單文件同步，以及可選的 `phase-4` tag／Release；Agent 未執行任何 Git 指令。
+- **待使用者 Git 操作**：只剩可選的 `phase-4` tag／Release；Agent 未執行任何 Git 指令。
 - **⚠️ 已知坑**：CMS 範圍文字不能用單一等級 regex 截取；Space SSR 不宜用 `request.session_hash` 作跨事件唯一鍵；Gradio 6 對事件來源 Button 的 `visible=False` 不可靠；福利類別與版本比較仍須走確定性正規化；20／20 不代表統計泛化；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
@@ -560,5 +559,6 @@
   - unknown CMS 公開 smoke 通過：系統只顯示 CMS 2–8 額度參考表、1966 與下一步申請流程，沒有推估個人 CMS，也沒有個人化政府給付或合計自付；單次核准後畫面顯示「已核准並發布」。
   - 最終本機證據：`uv lock --check` 成功、`uv pip check` 顯示 91 packages compatible、完整 pytest **514 passed in 4.64s**、`uv build` 成功產生 sdist／wheel、離線 CLI `--approve` 完成預覽與逐字發布。
   - 公開 CI 證據：GitHub Actions 對 `55e872f` 與前四筆公開 commit 均為 `completed / success`。公開文案掃描未發現禁止名稱；敏感字串掃描只命中 PROGRESS 的歷史測試帳號敘述，已改為不具識別性的泛稱。
+  - 作者已將最終驗收文件 commit `85a9461` 同步至 GitHub 與 Hugging Face Space；公開 API 確認 Space 為 `RUNNING`／CPU Basic，該 commit 的 GitHub Actions 結果為 `completed / success`。
   - Phase gate：Phase 0–4 與公開交付全部通過；新版雲端同版 20 題仍是可選診斷，需另行核准 US$1.776 上限，不是發布阻擋條件。
   - 成本與 Git：Agent 本次 review 沒有呼叫付費模型，新增成本 US$0；作者手動 Space smoke 的實際 usage 以帳單為準。Agent 未執行 Git。建議 commit：`docs: 完成 Phase 4 公開驗收紀錄`；該 commit 的 CI 成功後，可由作者自行建立 `phase-4` tag／Release。

@@ -27,14 +27,13 @@ Phase 0–4、GitHub 公開倉庫與 Hugging Face Space 均已完成並通過公
 | Phase 4 Space-ready | 根目錄 app、metadata、相依安裝、Space 僅雲端 | README YAML、由 `uv.lock` 匯出的 runtime constraints、[hosting 指引](../hosting.md)；公開 CPU Basic Space 已成功 Build 並 Running，頁面只提供雲端模式 | 完成並公開部署 |
 | Phase 4 公開端到端 | 已知 CMS、unknown CMS、HITL 與完成狀態 | 已知 CMS 4 一般戶試算為政府給付 15,120 元、自付 2,880 元；unknown CMS 只顯示 2–8 參考表與 1966；單次 approve 後顯示「已核准並發布」 | 完成 |
 | 打包 | 專案不只在現有 `.venv` 可用 | `uv build` 成功產生 sdist／wheel；全新 Python 3.11 venv 安裝 wheel 後，`ltc-benefit-agent --offline-demo --approve` 成功；wheel 無 `.env`／artifacts／models | 完成 |
-| 公開 CI | Push／PR 後自動檢查，不使用模型或 Secrets | Windows runner、Python 3.11、uv 0.11.18；目前公開 commit `55e872f` 與前四筆 commit 的 Actions 均為 `completed / success` | 完成 |
+| 公開 CI | Push／PR 後自動檢查，不使用模型或 Secrets | Windows runner、Python 3.11、uv 0.11.18；功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 的 Actions 均為 `completed / success` | 完成 |
 | 整體回歸 | lock、相依、tests、build、CLI、公開掃描 | `uv lock --check`、`uv pip check`（91 packages compatible）、完整 pytest **514 passed in 4.64s**、sdist／wheel build、離線 CLI approve 與公開文案掃描均通過 | 完成 |
 
 ## 尚待作者或另行核准
 
-1. 作者自行提交並 Push 本次最終文件同步；Agent 不執行 Git。
-2. 若要公平比較目前三模式，新版雲端固定 20 題已按 8 calls／題、12k input／3k output 與當日單價重估為 **US$1.776** 上限；必須取得明確核准後才執行。現有雲端 `7 / 20` 僅是舊 workflow 歷史基線。
-3. 最終文件 commit 的 CI 成功後，由作者決定是否建立 `phase-4` tag／Release；這是發布里程碑，不是程式功能缺口。
+1. 若要公平比較目前三模式，新版雲端固定 20 題已按 8 calls／題、12k input／3k output 與當日單價重估為 **US$1.776** 上限；必須取得明確核准後才執行。現有雲端 `7 / 20` 僅是舊 workflow 歷史基線。
+2. 作者可自行決定是否建立 `phase-4` tag／Release；這是發布里程碑，不是程式功能缺口。
 
 ## 可重跑的核心命令
 
