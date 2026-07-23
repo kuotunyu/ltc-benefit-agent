@@ -994,6 +994,61 @@ def test_multi_turn_plain_language_answers_are_not_repeated_as_missing() -> None
     assert "正式核定" not in followup
 
 
+def test_multi_turn_living_in_own_home_is_not_repeated_as_missing() -> None:
+    messages = [
+        HumanMessage(
+            content="家人 70 歲，洗澡和穿衣需要協助，想知道可以申請什麼。"
+        ),
+        HumanMessage(
+            content=(
+                "已持續 8 個月，住在自己家；不是原住民，沒有身心障礙證明，"
+                "沒有確診失智，也不是 PAC 個案；尚未接受照管中心評估，不知道 CMS。"
+            )
+        ),
+    ]
+    eligibility: dict[str, Any] = {}
+    copay: dict[str, Any] = {}
+    for message in messages:
+        eligibility, copay = merge_explicit_case_facts(
+            str(message.content),
+            previous_eligibility=eligibility,
+            previous_copay=copay,
+        )
+
+    assert eligibility["impairment_duration_months"] == 8
+    assert eligibility["residence_status"] == "COMMUNITY"
+
+    followup = _missing_followup(
+        messages,
+        {
+            "missing_fields": [
+                "impairment_duration_months",
+                "residence_status",
+            ]
+        },
+    )
+    assert "住家裡" not in followup
+    assert "住宿式機構" not in followup
+
+
+def test_missing_followup_uses_accumulated_state_when_message_window_is_reduced() -> None:
+    eligibility, copay = merge_explicit_case_facts(
+        "家人 70 歲，住在自己家，洗澡和穿衣需要協助，已持續 8 個月。"
+        "不是原住民，沒有身障證明，沒有確診失智，也不是 PAC 個案；CMS 不知道。"
+    )
+
+    followup = _missing_followup(
+        [HumanMessage(content="CMS 不知道。")],
+        {"missing_fields": ["residence_status", "official_cms_level"]},
+        explicit_eligibility=eligibility,
+        explicit_copay=copay,
+    )
+
+    assert followup == "我已記下這些資料，正在重新檢查資格初篩條件。"
+    assert "住家裡" not in followup
+    assert "住宿式機構" not in followup
+
+
 def test_slow_but_wants_help_answers_assistance_without_repeating_group() -> None:
     text = "基本上可以自己進行，但做很慢，希望有人幫助"
 
