@@ -106,7 +106,7 @@ Build 完成後，以無痕視窗實際走一次：
 
 這不是公開上線的阻擋條件。現有雲端 `7 / 20` 是舊 workflow 歷史基線；若要和目前地端 v3 同版比較，必須另行核准 **US$1.776** 的最壞成本上限後再執行。沒有重跑前，不得把歷史雲端數字寫成最新三模型排名。
 
-## 7. 可選：`phase-4` tag 與 Release
+## 7. 已完成：`phase-4` tag 與 Release
 
 只在 GitHub CI 與 Space 公開驗收都通過後建立：
 
@@ -116,3 +116,10 @@ git push origin phase-4
 ```
 
 Release notes 至少列出：可驗證／可稽核設計、規則快照、514+ 項測試、地端固定集結果、雲端結果版本邊界、Space 操作方式與免責聲明。tag／Release 是發布里程碑，不是程式功能本身。
+
+2026-07-23 完成紀錄：
+
+- annotated tag：`phase-4`
+- 指向 commit：`2669eec`
+- Release：[`Phase 4：長照 2.0 資格初篩與補助試算 Agent`](https://github.com/kuotunyu/ltc-benefit-agent/releases/tag/phase-4)
+- GitHub 狀態：`Latest`
