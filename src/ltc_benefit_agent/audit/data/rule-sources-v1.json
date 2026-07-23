@@ -1,0 +1,211 @@
+{
+  "schema_version": "1",
+  "manifest_version": "2026-07-23.1",
+  "sources": [
+    {
+      "schema_version": "1",
+      "source_id": "legacy-2022-regulation",
+      "title": "長期照顧服務申請及給付辦法（2022-02-01 歷史快照）",
+      "canonical_url": "https://law.moj.gov.tw/LawClass/LawOldVer.aspx?lnndate=20220120&lser=001&pcode=L0070059",
+      "media_type": "text/html",
+      "rule_version": "LEGACY_2022",
+      "effective_date": "2022-02-01",
+      "verified_at": "2026-07-22T00:00:00+08:00",
+      "raw_sha256": "8bea082fa14b13e036fc1d9c2a1088561dea6d44f2395b35705735392b7d3868",
+      "semantic_fingerprint": "5ed3f0b90426457b895fb305bf598faceada0228c40541a0a3121fdd454d1d54",
+      "extractor_id": "legacy-regulation-html",
+      "extractor_version": "legacy-regulation-html-v1",
+      "impacted_rule_ids": [
+        "eligibility.LEGACY_2022",
+        "foreign_caregiver.LEGACY_2022",
+        "quota.LEGACY_2022",
+        "copay.LEGACY_2022"
+      ],
+      "semantic_snapshot": {
+        "amended_on": "2022-01-20",
+        "eligibility": {
+          "dementia_minimum_age": 50,
+          "disability_certificate": true,
+          "indigenous_minimum_age": 55,
+          "minimum_age": 65,
+          "pac_eligible": false
+        },
+        "excluded_residences": [
+          "RESIDENTIAL_INSTITUTION"
+        ],
+        "foreign_caregiver": {
+          "quota_percent": 30,
+          "usage_scope": "PROFESSIONAL_SERVICE_ONLY"
+        },
+        "snapshot_effective_date": "2022-02-01"
+      }
+    },
+    {
+      "schema_version": "1",
+      "source_id": "current-2026-07-regulation",
+      "title": "長期照顧服務申請及給付辦法（2026-07-01 完整快照）",
+      "canonical_url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0070059",
+      "media_type": "text/html",
+      "rule_version": "CURRENT_2026_07",
+      "effective_date": "2026-07-01",
+      "verified_at": "2026-07-22T00:00:00+08:00",
+      "raw_sha256": "cb63f1dffc4316ad3a7ea0b848104f4f026079dd4a53ba0645919951218d37b4",
+      "semantic_fingerprint": "3f2d07a3db340e056b1bcd7ae5d6dffbb8539a05bd636512432bd5a1f973a7e3",
+      "extractor_id": "current-regulation-html",
+      "extractor_version": "current-regulation-html-v1",
+      "impacted_rule_ids": [
+        "eligibility.CURRENT_2026_07",
+        "foreign_caregiver.CURRENT_2026_07",
+        "effective_dates.CURRENT_2026_07"
+      ],
+      "semantic_snapshot": {
+        "amended_on": "2025-06-19",
+        "eligibility": {
+          "dementia_minimum_age": null,
+          "disability_certificate": true,
+          "indigenous_minimum_age": 55,
+          "minimum_age": 65,
+          "pac_eligible": true
+        },
+        "excluded_residences": [
+          "FULL_DAY_RESIDENTIAL",
+          "GROUP_HOME"
+        ],
+        "foreign_caregiver": {
+          "quota_percent": 30,
+          "usage_scope": "NON_HOME_CARE_COMBINATIONS"
+        },
+        "staged_effective_dates": {
+          "dementia_pac_foreign": "2026-01-01",
+          "final_attachments": "2026-07-01",
+          "general": "2025-09-01"
+        }
+      }
+    },
+    {
+      "schema_version": "1",
+      "source_id": "current-care-professional-quota",
+      "title": "附表二 長照需要等級及長照服務給付項目之額度",
+      "canonical_url": "https://law.moj.gov.tw/LawClass/LawGetFile.ashx?FileId=0000398330&lan=C",
+      "media_type": "application/pdf",
+      "rule_version": "CURRENT_2026_07",
+      "effective_date": "2026-07-01",
+      "verified_at": "2026-07-22T00:00:00+08:00",
+      "raw_sha256": "981cac6de424615936c1f88a15cc590892815649592261d17faacc868f7e999c",
+      "semantic_fingerprint": "2cff03a1169125628a40d2294ba64260dffce6317f9f690b9db3babc5fbcf5ab",
+      "extractor_id": "care-professional-quota-pdf",
+      "extractor_version": "care-professional-quota-pdf-v1",
+      "impacted_rule_ids": [
+        "quota.CURRENT_2026_07",
+        "foreign_caregiver.CURRENT_2026_07"
+      ],
+      "semantic_snapshot": {
+        "all_amounts_in_table_order": [
+          10020,
+          1680,
+          1840,
+          2000,
+          2400,
+          40000,
+          60000,
+          32340,
+          15460,
+          18580,
+          24100,
+          28070,
+          32090,
+          48510,
+          36180
+        ],
+        "care_and_professional_monthly": {
+          "2": 10020,
+          "3": 15460,
+          "4": 18580,
+          "5": 24100,
+          "6": 28070,
+          "7": 32090,
+          "8": 36180
+        }
+      }
+    },
+    {
+      "schema_version": "1",
+      "source_id": "current-copay-percentages",
+      "title": "附表五 部分負擔比率",
+      "canonical_url": "https://law.moj.gov.tw/LawClass/LawGetFile.ashx?FileId=0000398333&lan=C",
+      "media_type": "application/pdf",
+      "rule_version": "CURRENT_2026_07",
+      "effective_date": "2026-07-01",
+      "verified_at": "2026-07-22T00:00:00+08:00",
+      "raw_sha256": "43817b11e7bcf915299de52233b804287ed490ca267b80ddf8469da84b717576",
+      "semantic_fingerprint": "5551ac3cf0ed9f76f843ccab740196960b098e72870f5f76c3ce39bcff41d9d3",
+      "extractor_id": "copay-percentages-pdf",
+      "extractor_version": "copay-percentages-pdf-v1",
+      "impacted_rule_ids": [
+        "copay.CURRENT_2026_07"
+      ],
+      "semantic_snapshot": {
+        "all_percentages_in_table_order": [
+          0,
+          5,
+          16,
+          0,
+          10,
+          30,
+          0,
+          9,
+          27,
+          0,
+          8,
+          25,
+          0,
+          7,
+          21,
+          0,
+          10,
+          30,
+          0,
+          5,
+          16
+        ],
+        "percentage_matrix": {
+          "assistive_and_home_accessibility": [
+            0,
+            10,
+            30
+          ],
+          "care_and_professional": [
+            0,
+            5,
+            16
+          ],
+          "respite": [
+            0,
+            5,
+            16
+          ],
+          "transport_region_1": [
+            0,
+            10,
+            30
+          ],
+          "transport_region_2": [
+            0,
+            9,
+            27
+          ],
+          "transport_region_3": [
+            0,
+            8,
+            25
+          ],
+          "transport_region_4": [
+            0,
+            7,
+            21
+          ]
+        }
+      }
+    }
+  ]
+}

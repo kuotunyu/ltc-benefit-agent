@@ -17,7 +17,7 @@ short_description: 可稽核的台灣長照 2.0 資格初篩與補助試算
 > **可驗證、可稽核的台灣長照 2.0 資格初篩與補助試算 Agent**
 
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-185A45?style=flat-square)
-![tests 514 passed](https://img.shields.io/badge/tests-514%20passed-185A45?style=flat-square)
+![tests 535 passed](https://img.shields.io/badge/tests-535%20passed-185A45?style=flat-square)
 [![CI](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml)
 ![License MIT](https://img.shields.io/badge/license-MIT-4B5D55?style=flat-square)
 ![UI Gradio](https://img.shields.io/badge/UI-Gradio-4B5D55?style=flat-square)
@@ -57,6 +57,24 @@ short_description: 可稽核的台灣長照 2.0 資格初篩與補助試算
 - 現制福利身分使用法定「第一類／第二類／第三類」，不把模糊口語自行映射。
 - 最終 Markdown 先由 renderer 建稿，再於 `publish_report` 暫停；核准後輸出與預覽逐字相同。
 - 未經 renderer 與人工核准的模型訊息若含幣值或百分比，服務層會直接攔截，不讓模型自行生成的金額對外顯示。
+
+## 法規快照稽核
+
+民眾操作不會即時抓取法規網站。獨立的確定性 checker 會核對四個官方白名單來源，並以 `VERIFIED_SNAPSHOT`、`REVIEW_REQUIRED`、`CHECK_UNAVAILABLE` 區分「內容一致」、「需要人工複核」與「未完成檢查」。raw bytes 改變不等於規則改變，結論以必要欄位的結構化比較為準。
+
+P1 線上查證與 P2 離線複核分開執行：
+
+```powershell
+uv run --group audit ltc-rule-audit `
+  --output artifacts/rule-audit/2026-07-23-online.json
+
+uv run --group audit ltc-rule-audit `
+  --input artifacts/rule-audit/2026-07-23-online.json `
+  --review-output artifacts/rule-audit/2026-07-23-review.md `
+  --project-root .
+```
+
+P2 另外比較 manifest、runtime metadata／常數、README、fixtures 與測試斷言。整個流程不使用 LLM，也不自動更新規則；任何差異都必須先由作者檢閱，再另開工作修改。完整來源與人工 gate 契約見 [法規來源 manifest](docs/research/rule-source-manifest.md)。
 
 ## Agent 與工具流程
 
@@ -264,7 +282,7 @@ Windows 11、uv-managed CPython 3.11.15：
 
 | 驗證 | 結果 |
 |---|---:|
-| pytest | 498 passed |
+| pytest | 535 passed |
 | 規則／金額主矩陣 | 336 組 |
 | Agent／PII／HITL 離線整合 | 通過 |
 | 固定診斷集 schema／evaluator | 20 題通過驗證 |

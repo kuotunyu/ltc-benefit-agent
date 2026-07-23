@@ -2,21 +2,22 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-23）
 
-- **現在做到哪**：Phase 0–4 已公開完成；v0.2 定位為「法規更新監測與人工校對版」。v0.2-P0 已由作者驗收通過，尚未開始 P1 實作。
-- **本次完成**：PLAN 新增 D46–D49 與 v0.2-P0–P4；建立 `docs/research/rule-source-manifest.md`，鎖定 manifest／result schema 與三態語意；新增 `audit-rule-snapshot` skill；作者已確認 P0 契約並核准進入 P1。
-- **v0.2-P0 證據**：依 `skill-creator/init_skill.py` 初始化，`quick_validate.py` 輸出 `Skill is valid!`；佔位文案掃描 0 命中。這一輪沒有抓官方來源、沒有新增 checker、沒有修改資格或金額。
-- **實跑總證據**：本次 `uv lock --check` 成功、完整 pytest **514 passed in 3.12s**；既有 `uv pip check`、sdist／wheel build 與離線 CLI approve 均成功，功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 的 GitHub Actions 均成功。
+- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P2 均已驗收，P2 正等待作者自行 commit／Push，尚未開始 P3。
+- **本次完成**：作者檢閱正體中文複核報告，確認四個來源皆為 `VERIFIED_SNAPSHOT`、差異欄位為無、跨檔結果為 `CONSISTENT`、`writes_performed=false`，並明確回覆「v0.2-P2 驗收通過」。
+- **v0.2-P1 線上證據**：2026-07-23 四個官方來源均 HTTP 200、`VERIFIED_SNAPSHOT`、`changed_fields=[]`、`writes_performed=false`；兩個 HTML raw bytes 不同但必要語意一致，兩份 PDF raw 與 semantic 皆一致。
+- **v0.2-P2 報告**：`artifacts/rule-audit/2026-07-23-review.md`；比對 manifest、runtime metadata／常數、README、離線 fixtures 與 audit 測試斷言；原地重建 SHA-256 完全一致，四個受保護規則檔 0 變更。
+- **實跑總證據**：`uv lock --check` 解析 94 packages、`uv pip check` 92 packages 全部相容、audit 測試 **21 passed in 0.14s**、完整 pytest **535 passed in 3.34s**、sdist／wheel build 成功，project skill 驗證為 `Skill is valid!`。
 - **Context7**：以 `/websites/langchain_oss_python` 再確認 `AgentMiddleware.state_schema`、`ModelRequest.override` 與 `wrap_tool_call` 的現行介面後實作雙層 guard；既有 Gradio 查證仍見 Phase 日誌。
 - **本機 20 題最終結果**：F1 與 12B adapter 的追問、選工具、參數、金額、HITL、端到端均 20／20，PII 洩漏均 0。
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
 - **下一步**：
-  1. 由作者先自行提交並同步 v0.2-P0 文件與 skill。
-  2. 收到作者「開始 v0.2-P1」指示後，實作確定性來源 checker、離線 fixture 與第一次線上 smoke。
-- **成本**：v0.2-P0 新增成本 US$0，沒有模型或付費 API 呼叫。既有新版雲端 20 題上限 US$1.776，仍未核准或執行，也不阻擋 v0.2。
-- **待使用者人工處理**：P0 已驗收；尚不需要操作 Space Secrets。P1 第一次線上來源查證完成後，再由作者人工檢閱稽核結果。
-- **待使用者 Git 操作**：自行檢查、commit 並 Push v0.2-P0 產物；Agent 不執行任何 Git 指令。
+  1. 作者自行檢查並提交 P1／P2 變更，再同步 GitHub 與 Hugging Face Space。
+  2. 確認遠端同步後開始 v0.2-P3：排程入口、失敗語意與公開透明度。
+- **成本**：v0.2-P2 新增成本 US$0；報告完全離線，沒有網路、模型或付費 API 呼叫。
+- **待使用者人工處理**：P2 人工 gate 已完成；目前只需進行 Git 提交與遠端同步。
+- **待使用者 Git 操作**：自行檢查、分筆 commit P1／P2 並 Push；Agent 不執行任何 Git 指令。
 - **⚠️ 已知坑**：官方頁面 bytes 改變不等於規則語意改變；`CHECK_UNAVAILABLE` 不能當通過；checker 永不自動改常數；既有 CMS／Space／評估限制仍見 Phase 日誌；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
@@ -590,3 +591,54 @@
   - P0 正式完成並核准進入 P1；本次只同步文件狀態，尚未建立 checker、抓取官方來源或修改規則常數。
   - Git：Agent 未執行任何 Git 指令。建議 commit：`docs(v0.2): 建立法規快照稽核計畫與 skill`；P0 不建立 tag。
   - 實際成本：US$0。
+
+### v0.2-P1 — 確定性來源 checker（作者已驗收）
+
+- **2026-07-23（manifest、checker 與離線證據）**：
+  - 建立 `ltc_benefit_agent.audit`，包含版本化 manifest loader、exact URL 白名單、HTML／PDF 確定性 extractor、三態 checker 與 `ltc-rule-audit` CLI；`pypdf` 僅放在 audit dependency group。
+  - 正式 manifest `2026-07-23.1` 鎖定四個全國法規資料庫來源：2022 歷史條文、現行辦法、附表二額度及附表五部分負擔；每筆保存 raw SHA-256、semantic fingerprint、extractor 版本與核准語意快照。
+  - 離線 fixture 覆蓋內容一致、年齡門檻變更與來源不可用；14 項測試驗證三態、結構化差異、URL 白名單、raw／semantic 分離判讀及 `writes_performed=false`。
+  - checker 只讀來源；測試明確保護 `rules.py`、`eligibility.py`、`copay.py` 不被寫入，audit 模組也未加入 Gradio／Agent 民眾 runtime。
+
+- **2026-07-23（第一次官方線上 smoke）**：
+  - 明確執行四個白名單來源；全部 HTTP 200、`VERIFIED_SNAPSHOT`、`changed_fields=[]`、`errors=[]`、`writes_performed=false`。
+  - 兩個 HTML 頁面的 raw bytes 因官方動態頁面內容與核准 bytes 不同，但 extractor 取得的資格、住宿排除、外籍看護限制與分階段日期完全一致；兩份 PDF 的 raw 與 semantic 證據都一致。
+  - 完整 artifact 存在忽略版控的 `artifacts/rule-audit/2026-07-23-online.json`，未讀取 `.env`、未呼叫模型、未使用付費 API，也未修改任何規則常數。
+  - 實跑證據：`uv lock --check` 解析 94 packages；`uv pip check` 全部相容；audit 測試 **14 passed in 0.11s**；完整 pytest **528 passed in 3.19s**；`uv build` 成功產生 sdist 與 wheel，wheel 包含 audit manifest。
+  - Phase gate：工程 DoD 已完成，仍須作者人工檢閱 `docs/research/rule-source-manifest.md` 並明確核准；核准前停止，不進入 P2。
+  - Git：Agent 未執行任何 Git 指令。作者驗收後建議 commit：`feat(audit): 建立確定性法規來源 checker`；P1 不建立 tag。
+  - 實際成本：US$0。
+
+- **2026-07-23（作者人工驗收通過）**：
+  - 作者依 `docs/research/rule-source-manifest.md` 白名單逐項開啟並檢查四個全國法規資料庫來源，明確回覆「v0.2-P1 驗收通過」。
+  - 2022 歷史條文確認法規名稱為「長期照顧服務申請及給付辦法」、修正日期為民國 111 年 1 月 20 日，且為歷史法規頁面。
+  - 現行辦法確認修正日期為民國 114 年 6 月 19 日，附件清單包含附表二與附表五。
+  - 附表二確認照顧及專業服務 CMS 2–8 月額依序為 10,020、15,460、18,580、24,100、28,070、32,090、36,180 元。
+  - 附表五確認照顧及專業服務第一、二、三類部分負擔依序為 0%、5%、16%，並載明小數點後無條件捨去。
+  - Phase gate：P1 工程證據與人工來源簽核均完成，正式核准進入 v0.2-P2；本次沒有修改規則常數、runtime 或 Space 設定。
+  - Git 與成本：Agent 未執行任何 Git 指令；建議 commit：`feat(audit): 建立確定性法規來源 checker`；P1 不建立 tag；新增成本 US$0。
+
+### v0.2-P2 — 人工複核報告與一致性驗證（作者已驗收）
+
+- **2026-07-23（離線報告與跨檔一致性）**：
+  - 新增 `ConsistencyStatus`、`ConsistencyCheckResult`、`ReviewDecision` 與確定性報告 renderer；P2 只讀取 P1 JSON artifact，不重新抓網路，也不呼叫 LLM。
+  - 產生 `artifacts/rule-audit/2026-07-23-review.md`：四個來源皆為 `VERIFIED_SNAPSHOT`，差異欄位為無，跨檔一致性為 `CONSISTENT`，人工決定為待作者複核，`writes_performed=false`。
+  - 一致性檢查涵蓋 manifest、runtime 規則 metadata／業務常數、README 公開數值與 URL、audit 離線 fixtures，以及 `tests/test_rule_audit.py` 的預期斷言。
+  - 測試覆蓋正常一致、故意竄改數值的 drift、reject 不寫入規則、拒絕不安全的寫入證據，以及離線 CLI 報告輸出。
+  - 實跑證據：`uv lock --check` 解析 94 packages；`uv pip check` 顯示 92 packages compatible；audit **21 passed in 0.14s**；完整 pytest **535 passed in 3.34s**；sdist／wheel build 成功；`audit-rule-snapshot` skill 驗證為 `Skill is valid!`。
+  - 成本與邊界：US$0；沒有網路、模型、付費 API 或 `.env` 讀取；沒有修改資格、額度、部分負擔常數，也沒有執行 Git。
+  - Phase gate：工程 DoD 已完成，等待作者檢閱報告並明確回覆「v0.2-P2 驗收通過」；通過前不進入 P3。建議 commit：`feat(audit): 加入法規差異複核報告與一致性檢查`。
+
+- **2026-07-23（等待作者期間的唯讀收尾稽核）**：
+  - Placeholder 掃描未發現 TODO／FIXME／TBD／未實作分支；Audit 模組的寫檔面僅限 CLI 明確指定的 JSON 與 Markdown 證據輸出。
+  - 以相同 P1 artifact 原地重建 P2 複核報告，重建前後 SHA-256 完全一致；`rules.py`、`eligibility.py`、`copay.py` 與 manifest 四個受保護檔案雜湊均未改變。
+  - Wheel 共 52 entries，包含唯一一份 `audit/data/rule-sources-v1.json`；`.env`、`artifacts`、`.git`、`__pycache__` 禁止項目為 0。
+  - 公開候選檔案的 Google／Hugging Face／OpenAI／GitHub token 與 private-key 特徵掃描為 0 命中。
+  - 本次只補強 P2 證據，不開始 P3、不讀取 `.env`、不呼叫網路或模型、不執行 Git；成本 US$0。
+
+- **2026-07-23（作者人工驗收通過）**：
+  - 作者檢閱 `artifacts/rule-audit/2026-07-23-review.md`，確認四個官方來源皆為「語意與核准快照一致」、差異欄位為無、專案一致性為 `CONSISTENT`，且兩處 `writes_performed` 均為 `false`。
+  - 作者明確回覆「v0.2-P2 驗收通過」；PLAN 的 P2 最後一項 DoD 已勾選，正式核准進入 v0.2-P3。
+  - 驗收後再次執行 `tests/test_rule_audit.py`，結果 **21 passed in 0.21s**；未重新抓取網路、未呼叫模型或付費 API、未讀取 `.env`，新增成本 US$0。
+  - 本次只同步 Phase gate 文件，尚未開始 P3，也未修改資格、額度、部分負擔或已核准 manifest。
+  - Git：Agent 未執行任何 Git 指令；待作者自行分筆提交 P1／P2 並同步 GitHub 與 Hugging Face Space。P2 建議 commit：`feat(audit): 加入法規差異複核報告與一致性檢查`；P2 不建立 tag。

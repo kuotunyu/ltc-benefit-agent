@@ -31,7 +31,7 @@ jobs:
         run: uv lock --check
 
       - name: Install project
-        run: uv sync --locked --group dev
+        run: uv sync --locked --group dev --group audit
 
       - name: Run tests
         run: uv run pytest -q

@@ -1,0 +1,5 @@
+{
+  "fetch_result": "network_timeout",
+  "error": "Official source could not be fetched: TimeoutError",
+  "http_status": null
+}
