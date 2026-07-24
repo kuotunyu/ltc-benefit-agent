@@ -310,9 +310,11 @@ DoD：離線 CI 仍可獨立通過；線上 job 的權限、timeout、artifact �
 
 ### v0.2-P4 — 公開驗收與 v0.2.0 發布
 
-- 依相同情境複驗已知 CMS、unknown CMS、HITL、PII、規則版本與 Space session。
-- 完成 Windows CI、Space 公開 smoke、文件／授權／免責掃描與人工來源簽核。
-- 作者自行建立 `v0.2.0` tag／Release；`phase-4` 保持不可變的 v1 歷史基線。
+- [x] Windows CI、手動來源稽核、本機發布門檻、公開連結、唯讀 Space 桌面／390 px 手機版與版本同步檢查通過。
+- [x] README／來源授權／免責聲明完成掃描；套件版本、測試徽章與 manifest 狀態同步至 v0.2 收尾基準。
+- [x] 依相同情境複驗 known CMS＋approve、unknown CMS＋reject；確認 PII、規則版本、金額邊界與 Space session。
+- [x] 將公開 smoke 與最終驗證證據同步至 README、發布清單與 PROGRESS。
+- [ ] 作者自行建立 `v0.2.0` tag／Release；`phase-4` 保持不可變的 v1 歷史基線。
 
 DoD：所有必跑證據與人工簽核完成，沒有未解決的 `REVIEW_REQUIRED`，GitHub 與 Space 指向同一核准 commit。
 

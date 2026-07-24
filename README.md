@@ -17,7 +17,7 @@ short_description: 可稽核的台灣長照 2.0 資格初篩與補助試算
 > **可驗證、可稽核的台灣長照 2.0 資格初篩與補助試算 Agent**
 
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-185A45?style=flat-square)
-![tests 546 passed](https://img.shields.io/badge/tests-546%20passed-185A45?style=flat-square)
+![tests 585 passed](https://img.shields.io/badge/tests-585%20passed-185A45?style=flat-square)
 [![CI](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml)
 ![License MIT](https://img.shields.io/badge/license-MIT-4B5D55?style=flat-square)
 ![UI Gradio](https://img.shields.io/badge/UI-Gradio-4B5D55?style=flat-square)

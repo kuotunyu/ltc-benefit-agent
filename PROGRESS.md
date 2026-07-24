@@ -2,7 +2,7 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-24）
 
-- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P3 已由作者驗收並同步至 commit `6d1c7e5`。v0.2-P4 公開驗收進行中；GitHub `CI` 與手動 `Rule source audit #1` 均已通過。
+- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P4 驗收證據已齊備。GitHub／公開 Space 目前同步於 `de6777d`，Windows `CI` 與手動 `Rule source audit #1` 均已通過；只待建立 `v0.2.0` tag／Release。
 - **P4 自動門檻證據**：`Rule source audit #1` 對應 main `6d1c7e5`，狀態 `Success`、耗時 25 秒、artifact 1 份；依 workflow fail-closed 契約，代表本次四來源稽核沒有未處理的 `REVIEW_REQUIRED` 或 `CHECK_UNAVAILABLE`。
 - **本次完成**：建立手動／每月法規稽核 workflow、最小公開摘要與封裝核准狀態；另補 `--quiet` 阻止完整稽核 JSON 出現在公開 Actions log，並要求公開摘要由同一次新鮮線上稽核完整覆蓋 manifest 全部來源且來源 ID 唯一。局部 `--source` 與封存 `--input` 都不能產生公開摘要；三種證據輸出必須使用不同檔案身分，且在讀檔／連線前拒絕覆寫輸入證據、manifest、核准狀態、`.env` 與業務規則檔，Windows 大小寫別名與 hard link 也不能繞過。排程不自動升格快照，民眾對話不即時抓法規。封裝核准狀態留在專案稽核層；依作者 UI 回饋移除民眾首頁狀態卡。另修正多輪白話答案未被辨識、導致重複追問的問題：每輪重新核對整段對話，只追問一組真正缺漏的資料；「基本上可以自己進行，但做很慢，希望有人幫助」現在會被記為有協助需求，下一輪只追問尚未回答的持續時間。也已修正縮減訊息視窗後追問未沿用 middleware state 累積資料的問題；已記錄的「住在自己家」不再被重問。
 - **v0.2-P1 線上證據**：2026-07-23 四個官方來源均 HTTP 200、`VERIFIED_SNAPSHOT`、`changed_fields=[]`、`writes_performed=false`；兩個 HTML raw bytes 不同但必要語意一致，兩份 PDF raw 與 semantic 皆一致。
@@ -13,13 +13,10 @@
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
-- **下一步**：
-  1. 在公開 Hugging Face Space 重跑 unknown CMS、known CMS、HITL approve／reject 與手機版 smoke。
-  2. 檢查 README、來源授權、免責聲明與公開連結。
-  3. 證據同步後，由作者自行建立 `v0.2.0` tag／Release。
-- **成本**：v0.2-P3 工程與測試新增成本 US$0；沒有模型或付費 API 呼叫。
-- **待使用者人工處理**：下一步只需以瀏覽器驗收公開 Space；目前暫時不需要 Git 或 PowerShell。
-- **待使用者 Git 操作**：P4 證據尚未全部完成，暫不建立 `v0.2.0` tag／Release；Agent 不執行 Git。
+- **下一步**：將本輪 v0.2.0 metadata 與驗收文件 commit、同步 GitHub／Space，確認 CI／Build 後由作者建立不可變的 `v0.2.0` tag／Release。
+- **成本**：作者已核准公開 smoke 上限 US$0.1776；實際用量以雲端帳單為準。除這兩個虛構公開情境外，本輪工程與測試沒有模型或付費 API 呼叫。
+- **待使用者人工處理**：公開驗收已完成；最後只需依發布清單建立 tag／Release。
+- **待使用者 Git 操作**：本機已有 v0.2.0 metadata 與驗收文件異動，尚未 commit／Push；完成同步與 CI 後再建立 `v0.2.0` tag／Release。
 - **⚠️ 已知坑**：官方頁面 bytes 改變不等於規則語意改變；`CHECK_UNAVAILABLE` 不能當通過；checker 永不自動改常數；既有 CMS／Space／評估限制仍見 Phase 日誌；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
@@ -804,3 +801,19 @@
   - 此項本機回歸驗收已通過；P4 整體仍待公開 Space 對應情境與其他發布驗收完成。
   - 成本與邊界：US$0；未呼叫模型或付費 API、未讀取 `.env`、未修改資格／金額規則，也未執行 Git。
   - Git：Agent 未執行任何 Git 指令。作者驗收後建議 commit：`fix(agent): 沿用累積資料避免重問居住狀態`。
+
+- **2026-07-24（P4 收尾盤點與零成本門檻）**：
+  - Git 工作樹起始乾淨，`main`／GitHub／公開 Space 均指向 `de6777d`；該 commit 的 Windows `CI` 為 `completed / success`，Space API 回報 `RUNNING`／CPU Basic。
+  - 公開 Space 唯讀載入通過：首頁四步操作、CMS 說明、個資提醒與輸入區可見，browser console error 為 0；390 px viewport 的 document scroll width 為 375 px，輸入與按鈕均在可視寬度內，沒有水平溢位。
+  - 本機重新執行 `uv sync --locked --all-groups`、`uv lock --check`、`uv pip check`、公開評估 exporter、完整 pytest、`py_compile`、離線 CLI approve 與 `uv build`；結果為 94 packages resolved、92 packages compatible、`PUBLIC_EVAL_OK runs=2`、pytest **585 passed in 3.88s**，離線報告正體中文輸出正常。
+  - 發現並修正 P4 發布 metadata 漂移：專案／lock 版本由 `0.1.0` 升為 `0.2.0`，README 測試徽章由 546 更新為 585，manifest 文件改為 P1–P3 已驗收，發布清單新增 v0.2-P4 gate。新建 wheel `ltc_benefit_agent-0.2.0-py3-none-any.whl` 共 54 個檔案，metadata 為 0.2.0，未含 `.env`、artifacts 或 models。
+  - README 的公開 Space、原始碼、`phase-4` Release、全國法規資料庫與 1966 連結均回應 HTTP 200；政府資料授權、MIT License 與固定免責聲明仍存在。
+  - Context7 官方模型文件確認 `gemini-3.5-flash-lite` 仍是有效 model ID，現行文字費率為每百萬 input US$0.30、output（含 thinking tokens）US$2.50。公開 P4 以兩個虛構情境、每題最多 8 calls、每 call 12k input／3k output 估算，最壞上限為 16 calls、192k input、48k output、**US$0.1776**；未獲作者明確核准前不送出。
+  - 尚待 gate：公開 known CMS＋approve、unknown CMS＋reject；完成後同步證據，再由作者建立 `v0.2.0` tag／Release。本輪尚未呼叫模型、未讀取 `.env`、未執行 Git，新增 API 成本 US$0。
+
+- **2026-07-24（P4 公開 Space smoke 驗收）**：
+  - 作者明確核准公開 smoke 最壞成本 US$0.1776 後，以兩個獨立公開 Space session 送出虛構情境；未輸入姓名、身分證、電話、地址或真實個資。
+  - known CMS 案例：82 歲、社區居住、協助需求 8 個月、正式 CMS 4、第三類、無外籍看護、每月服務費 NT$18,000。草稿顯示 `CURRENT_2026_07`、月額 NT$18,580、16%、政府給付 NT$15,120、額度內部分負擔／合計自付 NT$2,880、超額 NT$0；核准後顯示「報告已核准；發布內容與校閱草稿逐字一致」，按鈕改為 disabled 的「已核准並發布」。
+  - unknown CMS 案例：70 歲、社區居住、協助需求 8 個月、明確尚未正式評估且要求 CMS 2–8 參考表。草稿明示「不做個人化試算，也不從描述猜級」，只列 CMS 2–8 參考額度，沒有個人政府給付或合計自付；選擇 reject 後顯示「草稿未發布」，對話紀錄也明確寫出沒有發布最終報告。
+  - 兩個 session 均為獨立頁面，browser console error 均為 0；既有 PII middleware／unit tests 仍是個資輸入與遮蔽的自動化證據。本次實際雲端用量未由公開頁面提供，帳單為準且不超過核准上限。
+  - P4 所有工程與公開驗收項目已完成；只待將本輪 metadata／文件同步至 GitHub 與 Space、確認 CI／Build，再由作者建立不可變的 `v0.2.0` tag／Release。未讀取或輸出 `.env` 真值。

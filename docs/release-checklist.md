@@ -2,13 +2,17 @@
 
 本文件把專案完成後仍需由作者帳號操作的步驟集中在一處。Agent 不執行 Git、不建立託管應用，也不代填 Secrets。
 
-## 目前公開狀態（2026-07-23）
+## 目前公開狀態（2026-07-24）
 
 - 功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 均已推送至 GitHub 與 Hugging Face Space；Space 為 Running。
 - GitHub Actions 對上述兩個 commit 均顯示成功。
 - 公開 Space 已通過已知 CMS 試算、unknown CMS 參考表與單次 HITL 核准發布。
 - 最終本機驗證為 `uv lock --check`、91 packages compatible、pytest **514 passed in 4.64s**、sdist／wheel build 與離線 CLI approve 成功。
 - 功能與公開驗收文件均已完成；`phase-4` tag／Release 與同版雲端 20 題皆為可選事項。
+- v0.2-P0–P3 已由作者驗收；目前 GitHub 與公開 Space 同步於 `de6777d`，該 commit 的 Windows CI 成功，Space 為 Running。
+- v0.2 法規來源手動排程已於 `6d1c7e5` 成功完成，沒有未處理的 `REVIEW_REQUIRED` 或 `CHECK_UNAVAILABLE`。
+- v0.2-P4 本機門檻為 92 packages compatible、pytest **585 passed**、公開評估重建、離線 CLI、sdist／wheel 與唯讀公開頁面／390 px 手機版檢查通過。
+- 經作者核准 US$0.1776 上限後，公開 Space 已以兩個虛構情境完成 known CMS＋approve 與 unknown CMS＋reject；兩個 session 的 browser console error 均為 0。現只待建立 `v0.2.0` tag／Release。
 
 ## 1. 本機最後驗證
 
@@ -123,3 +127,18 @@ Release notes 至少列出：可驗證／可稽核設計、規則快照、514+ �
 - 指向 commit：`2669eec`
 - Release：[`Phase 4：長照 2.0 資格初篩與補助試算 Agent`](https://github.com/kuotunyu/ltc-benefit-agent/releases/tag/phase-4)
 - GitHub 狀態：`Latest`
+
+## 8. v0.2-P4 收尾
+
+發布 `v0.2.0` 前依序確認：
+
+- [x] GitHub 與公開 Space 指向同一核准 commit。
+- [x] Windows CI 與手動法規來源稽核成功。
+- [x] 本機 lock、相依、585 項測試、公開評估、離線 CLI 與 distribution build 通過。
+- [x] 公開 Space 桌面與 390 px 手機版可載入，沒有水平溢位或 browser console error。
+- [x] 以虛構資料重跑 known CMS 與 approve：CMS 4、第三類、政府給付 NT$15,120、合計自付 NT$2,880；核准後內容逐字一致，完成按鈕 disabled。
+- [x] 以虛構資料重跑 unknown CMS 與 reject：只顯示 CMS 2–8 參考表，沒有個人化給付或自付；拒絕後顯示「草稿未發布」。
+- [x] 公開驗收證據已同步至發布清單與 PROGRESS。
+- [ ] 建立不可變的 `v0.2.0` tag／Release。
+
+公開對話會使用雲端模型。執行前須用 `scripts/estimate_cloud_cost.py` 列出最壞成本，取得作者明確核准；不同意費用時不得以舊版公開 smoke 冒充 v0.2 證據。
