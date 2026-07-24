@@ -2,7 +2,7 @@
 
 ## 🧭 快速回憶區（上次收工：2026-07-24）
 
-- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P4 驗收證據已齊備。GitHub／公開 Space 目前同步於 `de6777d`，Windows `CI` 與手動 `Rule source audit #1` 均已通過；只待建立 `v0.2.0` tag／Release。
+- **現在做到哪**：Phase 0–4 已公開完成；v0.2-P0–P4 驗收證據已齊備。公開 smoke 時 GitHub／Space 同步於 `de6777d`，之後 GitHub 新增 `d95d1fa`；目前待同步最新 release candidate 至兩端、確認 CI／Build，再建立 `v0.2.0` tag／Release。
 - **P4 自動門檻證據**：`Rule source audit #1` 對應 main `6d1c7e5`，狀態 `Success`、耗時 25 秒、artifact 1 份；依 workflow fail-closed 契約，代表本次四來源稽核沒有未處理的 `REVIEW_REQUIRED` 或 `CHECK_UNAVAILABLE`。
 - **本次完成**：建立手動／每月法規稽核 workflow、最小公開摘要與封裝核准狀態；另補 `--quiet` 阻止完整稽核 JSON 出現在公開 Actions log，並要求公開摘要由同一次新鮮線上稽核完整覆蓋 manifest 全部來源且來源 ID 唯一。局部 `--source` 與封存 `--input` 都不能產生公開摘要；三種證據輸出必須使用不同檔案身分，且在讀檔／連線前拒絕覆寫輸入證據、manifest、核准狀態、`.env` 與業務規則檔，Windows 大小寫別名與 hard link 也不能繞過。排程不自動升格快照，民眾對話不即時抓法規。封裝核准狀態留在專案稽核層；依作者 UI 回饋移除民眾首頁狀態卡。另修正多輪白話答案未被辨識、導致重複追問的問題：每輪重新核對整段對話，只追問一組真正缺漏的資料；「基本上可以自己進行，但做很慢，希望有人幫助」現在會被記為有協助需求，下一輪只追問尚未回答的持續時間。也已修正縮減訊息視窗後追問未沿用 middleware state 累積資料的問題；已記錄的「住在自己家」不再被重問。
 - **v0.2-P1 線上證據**：2026-07-23 四個官方來源均 HTTP 200、`VERIFIED_SNAPSHOT`、`changed_fields=[]`、`writes_performed=false`；兩個 HTML raw bytes 不同但必要語意一致，兩份 PDF raw 與 semantic 皆一致。
@@ -13,10 +13,10 @@
 - **本機舊基線**：F1 端到端 0／20、12B adapter 3／20；README 保留初始表，不用最終結果覆蓋歷史證據。
 - **雲端 20 題舊基線**：追問 10、選工具 12、參數 19、金額 19、PII 0、HITL 10、端到端 7；S08／S15 的不合法發布被 registry 擋下。
 - **金額口徑**：20 題中 13 題應試算；最終 F1 與 12B adapter 均為 13／13。雲端 12／13 是舊 workflow 基線，尚未重跑。
-- **下一步**：將本輪 v0.2.0 metadata 與驗收文件 commit、同步 GitHub／Space，確認 CI／Build 後由作者建立不可變的 `v0.2.0` tag／Release。
+- **下一步**：將本輪 v0.2.0 metadata、公開評估摘要與驗收文件同步 GitHub／Space，確認兩端同一 commit 的 CI／Build 後由作者建立不可變的 `v0.2.0` tag／Release。
 - **成本**：作者已核准公開 smoke 上限 US$0.1776；實際用量以雲端帳單為準。除這兩個虛構公開情境外，本輪工程與測試沒有模型或付費 API 呼叫。
 - **待使用者人工處理**：公開驗收已完成；最後只需依發布清單建立 tag／Release。
-- **待使用者 Git 操作**：本機已有 v0.2.0 metadata 與驗收文件異動，尚未 commit／Push；完成同步與 CI 後再建立 `v0.2.0` tag／Release。
+- **待使用者 Git 操作**：本機 release candidate 已建立 commits；GitHub 目前為 `d95d1fa`、Space 為 `de6777d`。同步兩端並確認 CI／Build 後再建立 `v0.2.0` tag／Release。
 - **⚠️ 已知坑**：官方頁面 bytes 改變不等於規則語意改變；`CHECK_UNAVAILABLE` 不能當通過；checker 永不自動改常數；既有 CMS／Space／評估限制仍見 Phase 日誌；`.env` 真值從未印出、覆寫或提交。
 
 ## 📜 Phase 日誌（append-only）
@@ -817,3 +817,7 @@
   - unknown CMS 案例：70 歲、社區居住、協助需求 8 個月、明確尚未正式評估且要求 CMS 2–8 參考表。草稿明示「不做個人化試算，也不從描述猜級」，只列 CMS 2–8 參考額度，沒有個人政府給付或合計自付；選擇 reject 後顯示「草稿未發布」，對話紀錄也明確寫出沒有發布最終報告。
   - 兩個 session 均為獨立頁面，browser console error 均為 0；既有 PII middleware／unit tests 仍是個資輸入與遮蔽的自動化證據。本次實際雲端用量未由公開頁面提供，帳單為準且不超過核准上限。
   - P4 所有工程與公開驗收項目已完成；只待將本輪 metadata／文件同步至 GitHub 與 Space、確認 CI／Build，再由作者建立不可變的 `v0.2.0` tag／Release。未讀取或輸出 `.env` 真值。
+
+- **2026-07-24（P4 發布同步狀態）**：
+  - 公開 smoke 完成後偵測到 GitHub `main` 已新增 `d95d1fa fix: 公開評估匯出不再寫入絕對路徑`，公開 Space `main` 仍為 `de6777d`。此修正只影響公開評估摘要的診斷集標示，未改 Agent、資格、金額或公開 smoke runtime。
+  - 本機再以目前 exporter 重建摘要，將 `diagnostic_set` 正規化為 `scenarios.json`，並建立 `9743adb test(eval): 同步公開評估摘要`；連同 v0.2.0 metadata／驗收文件 commit `3389b10`，最新 local release candidate 需先同步至兩個 remote。

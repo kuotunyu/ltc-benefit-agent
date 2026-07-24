@@ -6,7 +6,7 @@
 
 建立日期：2026-07-23
 
-狀態：v0.2-P1–P4 驗收證據已齊備；待建立 `v0.2.0` tag／Release。
+狀態：v0.2-P1–P4 驗收證據已齊備；待同步最新 release candidate、確認 CI／Build，並建立 `v0.2.0` tag／Release。
 
 ## 目的
 
