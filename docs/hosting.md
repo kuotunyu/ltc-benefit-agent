@@ -1,6 +1,6 @@
 # 託管環境操作指南
 
-本專案提供根目錄 `app.py`、README YAML Space metadata 與 `requirements.txt`。偵測到 `SPACE_ID` 時，介面只顯示雲端 provider，不嘗試啟動或連線 Windows 地端模型服務。
+本專案提供根目錄 `app.py`、`requirements.txt` 與 `deploy/space/README.md` 的 Space metadata 模板。GitHub 公開 `README.md` 刻意不放部署 front matter，避免在專案首頁顯示設定表格。偵測到 `SPACE_ID` 時，介面只顯示雲端 provider，不嘗試啟動或連線 Windows 地端模型服務。
 
 作者自行建立託管應用、設定 secret 與推送；Agent 不執行 Git 或帳號操作。
 
@@ -23,12 +23,14 @@ uv export --locked --format requirements.txt --no-dev --no-emit-project `
   --no-hashes --no-annotate --no-header --output-file requirements.txt
 ```
 
-根目錄 README metadata 已指定：
+`deploy/space/README.md` 已指定：
 
 - SDK：Gradio 6.20.0。
 - Python：3.11。
 - App file：`app.py`。
 - `fullWidth: true`、`header: mini`。
+
+GitHub 的 `origin/main` 與 Space 的 `space/main` 刻意分流；不要直接執行 `git push space main`，也不要把 `space/main` pull 回本機 `main`。更新 Space 前，必須先使用部署模板產生帶有 metadata 的 Space 版本，再推送到 Space。
 
 部署前先在本機執行：
 

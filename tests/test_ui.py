@@ -178,7 +178,7 @@ def test_space_only_exposes_cloud_provider(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_space_metadata_and_install_entrypoint_are_complete() -> None:
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme = (ROOT / "deploy" / "space" / "README.md").read_text(encoding="utf-8")
     assert readme.startswith("---\n")
     frontmatter = readme.split("---", 2)[1]
     for required in (

@@ -691,7 +691,11 @@ def test_project_consistency_detects_readme_drift(tmp_path: Path) -> None:
     _copy_consistency_inputs(tmp_path)
     readme = tmp_path / "README.md"
     readme.write_text(
-        readme.read_text(encoding="utf-8").replace("10,020", "10,021", 1),
+        readme.read_text(encoding="utf-8").replace(
+            "CMS 2–8 的照顧及專業服務月額為 10,020、",
+            "CMS 2–8 的照顧及專業服務月額為 10,021、",
+            1,
+        ),
         encoding="utf-8",
     )
 
