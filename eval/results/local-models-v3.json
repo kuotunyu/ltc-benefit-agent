@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "diagnostic_set": "eval/scenarios.json",
+  "diagnostic_set": "scenarios.json",
   "diagnostic_set_sha256": "a96018d7db915053cc9aa1dc5fbaacfffbc41fc74f3d40c815ee624704f24ef2",
   "scenario_count": 20,
   "money_scenario_count": 13,
