@@ -137,7 +137,7 @@ def build_public_evaluation_summary(
         raise ValueError("at least one evaluation artifact is required")
     return {
         "schema_version": 1,
-        "diagnostic_set": scenario_path.as_posix(),
+        "diagnostic_set": scenario_path.name if scenario_path.is_absolute() else scenario_path.as_posix(),
         "diagnostic_set_sha256": _sha256(scenario_path),
         "scenario_count": len(scenario_ids),
         "money_scenario_count": len(money_ids),
