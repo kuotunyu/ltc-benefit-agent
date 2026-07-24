@@ -35,7 +35,7 @@
 ## 架構
 
 ```mermaid
-flowchart LR
+flowchart TD
     U["多輪自然語言"] --> P["PII 遮蔽"]
     P --> I["保守式 Intake"]
     I --> A["對話 Agent"]
