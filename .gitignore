@@ -3,6 +3,11 @@
 .env.*
 !.env.example
 
+# Private interview prep & scratch notes
+interview*.md
+INTERVIEW_PREP.md
+*.private.md
+
 # Python / uv
 .venv/
 dist/
@@ -18,6 +23,11 @@ htmlcov/
 .vscode/
 .DS_Store
 Thumbs.db
+.claude/
+CLAUDE.md
+AGENTS.md
+PLAN.md
+PROGRESS.md
 
 # Runtime data and models
 logs/
