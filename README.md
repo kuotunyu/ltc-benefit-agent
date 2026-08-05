@@ -31,6 +31,7 @@
 ## 系統架構
 
 ```mermaid
+%%{init: {'themeVariables': {'fontSize': '20px'}}}%%
 flowchart TD
     U["使用者多輪對話"] --> P["PII 遮蔽過濾器"]
     P --> I["保守式 Intake Middleware"]
@@ -41,6 +42,8 @@ flowchart TD
     H -- 核准 --> R["逐字鎖定之最終報告"]
     H -- 駁回 --> X["拒絕發布"]
     S["版本法規快照 DB"] --> T
+
+    style H fill:#fff9db,stroke:#f59f00,stroke-width:2px
 ```
 
 ---
