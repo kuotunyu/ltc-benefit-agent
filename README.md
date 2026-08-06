@@ -28,22 +28,51 @@
 
 ---
 
-## 系統架構
+## 系統架構與防護流程
+
+### 1. 系統模組與資安防護拓撲
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '20px'}}}%%
 flowchart TD
-    U["使用者多輪對話"] --> P["PII 遮蔽過濾器"]
-    P --> I["保守式 Intake Middleware"]
-    I --> A["對話 Agent Router"]
-    A --> T["確定性 Python 工具集 (Tools)"]
-    T --> D["試算報告草稿 (Draft Report)"]
+    U["使用者多輪對話"] --> P["PII 遮蔽過濾器<br/>(去識別化過濾)"]
+    P --> I["保守式 Intake Middleware<br/>(Fail-Closed 門控)"]
+    I --> A["對話 Agent Router<br/>(意圖理解)"]
+    A --> T["確定性 Python 工具集<br/>(版本化規則引擎)"]
+    T --> D["試算報告草稿<br/>(Draft Report)"]
     D --> H{"人工核准 (HITL)"}
-    H -- 核准 --> R["逐字鎖定之最終報告"]
-    H -- 駁回 --> X["拒絕發布"]
-    S["版本法規快照 DB"] --> T
+    H -->|核准| R["逐字鎖定之最終報告"]
+    H -->|駁回| X["拒絕發布與退回"]
+    S[("版本法規快照 DB<br/>CURRENT_2026_07")] --> T
 
     style H fill:#fff9db,stroke:#f59f00,stroke-width:2px
+    style T fill:#e7f5ff,stroke:#1971c2,stroke-width:2px
+```
+
+### 2. 確定性計算與 HITL 人工審核時序 (Sequence Diagram)
+
+```mermaid
+%%{init: {'themeVariables': {'fontSize': '20px'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as 使用者 / 家屬
+    participant PII as PII Filter & Middleware
+    participant Agent as Agent Router
+    participant Engine as Python 法規引擎<br/>(確定性計算)
+    actor HITL as 人工專家 (HITL)
+
+    User->>PII: 輸入長照試算對話
+    Note over PII: 全文 PII 脫敏遮蔽<br/>確認 CMS 級別完備性
+    PII->>Agent: 傳送清洗後 Prompt
+    Agent->>Engine: 調用計算工具 (CMS 級別, 身分, 服務)
+    Engine-->>Agent: 回傳精確金額 (給付 NT$15,120, 自付 NT$2,880)
+    Agent->>HITL: 提交試算報告草稿 (Draft Report)
+
+    alt 人工審核通過
+        HITL-->>User: 核准並簽章發布逐字鎖定報告
+    else 資訊不足或駁回
+        HITL-->>User: 駁回草稿並要求補齊資料
+    end
 ```
 
 ---
@@ -96,3 +125,9 @@ uv run ltc-benefit-agent --offline-demo --approve
 # 啟動 Web UI (開啟 http://127.0.0.1:7860)
 uv run ltc-benefit-ui
 ```
+
+---
+
+## 授權與聲明
+
+本專案採 [MIT License](LICENSE)。僅供初步試算與研究用途，非正式資格核定。
