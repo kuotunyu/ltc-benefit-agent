@@ -1,46 +1,70 @@
-# Phase 0–4 完成度稽核
+# Final Portfolio Closure Audit
 
-查證日期：2026-07-23
-範圍：`PLAN.md`、原始四階段交付、公開介面、測試與發布邊界。
-方法：只以目前檔案、可重跑命令、raw／public evaluation artifacts 與實際 runtime 結果判定；不以開發意圖或 README 自述代替證據。
+查證日期：2026-08-20
+
+狀態：`Frozen / Portfolio Complete`
+
+範圍：Git、CI、`v0.2.0` Release、公開展示環境、`CURRENT_2026_07` provenance、official-source hashes、deterministic calculations、PII、HITL 與 branch protection。
 
 ## 結論
 
-Phase 0–4、GitHub 公開倉庫、Hugging Face Space 與 GitHub Release 均已完成並通過公開驗收。資格與金額規則、Agent／PII／HITL、三模式評估基礎、Gradio、三份對話範例、公開 CI、已知 CMS 試算、unknown CMS 防誤判與單次核准發布都有可重跑或公開端到端證據。`phase-4` annotated tag 已指向 `2669eec`，對應 Release 已標示為 `Latest`。剩餘事項只有可選的同版雲端 20 題重跑，不是功能或發布缺口。
+`v0.2.0` 的產品與發布範圍已封存。2026-08-20 current-truth audit 沒有發現 2026-07 snapshot 後會改變本專案資格、照顧及專業服務月額或部分負擔語意的官方來源差異，因此沒有啟動 rule engine 更新。最終 closure 只更新稽核日期、公開文件、展示環境同步與 GitHub branch protection。
 
-## Requirement matrix
+這個狀態不代表正式資格核定，也不把固定測試集結果延伸為公開環境的零風險保證。最終資格、CMS、福利類別與核定金額仍由照管中心、地方主管機關與 1966 確認。
 
-| 範圍 | 原始要求 | 當前證據 | 判定 |
-|---|---|---|---|
-| 核心原則 | LLM 只理解、追問、選工具與彙整；資格與金額由 Python | `tools/` 不依賴 Agent framework；service 會攔截未核准幣值；336 組規則／金額主矩陣 | 完成 |
-| Phase 0 | PLAN、append-only PROGRESS、三個基礎 project skills | [PLAN](../../PLAN.md)、[PROGRESS](../../PROGRESS.md)、project skills 目錄；目前六支 skills 在 `PYTHONUTF8=1` 下均由 `quick_validate.py` 驗證通過 | 完成 |
-| Phase 1 | eligibility、copay、FAQ adapter／fallback、版本 metadata、uv／MIT／env 範本 | [tools](../../src/ltc_benefit_agent/tools)、[規則校對表](rules-audit.md)、`uv.lock`、`LICENSE`、`.env.example`；人工規則簽核 5／5 | 完成 |
-| Phase 1 金額 | CMS 2–8、三福利類別、外籍看護 30%、整數捨去、超額 | `tests/test_copay.py` 與 336 組主矩陣；所有輸出為整數 | 完成 |
-| Phase 2 | LangChain 1.x `create_agent`、provider factory、多輪 CLI | `agent/factory.py`、`service.py`、`cli.py`；Context7 與鎖定版本 API 已交叉查證 | 完成 |
-| Phase 2 PII | model、tools、log、輸出前遮蔽；不保存 raw 對話 log | `privacy.py`、PII middleware／audit tests；公開掃描無 token、私密路徑或作者信箱 | 完成 |
-| Phase 2 HITL | 確定性建稿、完整預覽、approve／reject；核准後逐字一致 | `reports.py`、`toolset.py`、service／HITL tests；12B adapter 換行回歸也鎖回 registry 原文 | 完成 |
-| Phase 3 F1 | gated 原始權重、自轉 F16／Q4_K_M、Ollama 匯入 | [地端模型文件](../local-models.md)記錄 revision、GGUF SHA-256、正式 alias 與可重建命令 | 完成 |
-| Phase 3 評估 | 固定 20 題、七項確定性指標、三模式背景比較 | [情境集](../../eval/scenarios.json)、evaluator、歷史雲端 artifact 紀錄與[公開地端摘要](../../eval/results/local-models-v3.json) | 完成；雲端最新 workflow 尚未同版重跑 |
-| Phase 3 地端最終結果 | F1 與 12B 相容模式重跑 | 兩份 v3 raw artifacts 各 20 traces；公開摘要重新計分為端到端 20／20、金額題 13／13、PII 0 | 完成；只代表固定診斷集 |
-| Phase 4 Gradio | 多輪聊天、provider、舊制、來源、明細、approve／reject | `ui/`、`app.py`、11 項 UI tests；桌機／390 px 手機多輪 smoke 為 `UI_SMOKE_OK`、console 0 error；常駐聊天面板不需另行展開歷史 | 完成 |
-| Phase 4 文件 | 繁中 README、動機、Mermaid、快速開始、模型表、評估、成本、PII、授權、三份完整對話 | [README](../../README.md)與[三份範例](../examples) | 完成 |
-| Phase 4 Space-ready | 根目錄 app、metadata、相依安裝、Space 僅雲端 | README YAML、由 `uv.lock` 匯出的 runtime constraints、[hosting 指引](../hosting.md)；公開 CPU Basic Space 已成功 Build 並 Running，頁面只提供雲端模式 | 完成並公開部署 |
-| Phase 4 公開端到端 | 已知 CMS、unknown CMS、HITL 與完成狀態 | 已知 CMS 4 一般戶試算為政府給付 15,120 元、自付 2,880 元；unknown CMS 只顯示 2–8 參考表與 1966；單次 approve 後顯示「已核准並發布」 | 完成 |
-| 打包 | 專案不只在現有 `.venv` 可用 | `uv build` 成功產生 sdist／wheel；全新 Python 3.11 venv 安裝 wheel 後，`ltc-benefit-agent --offline-demo --approve` 成功；wheel 無 `.env`／artifacts／models | 完成 |
-| 公開 CI | Push／PR 後自動檢查，不使用模型或 Secrets | Windows runner、Python 3.11、uv 0.11.18；功能驗收基準 `55e872f` 與最終文件同步 `85a9461` 的 Actions 均為 `completed / success` | 完成 |
-| 整體回歸 | lock、相依、tests、build、CLI、公開掃描 | `uv lock --check`、`uv pip check`（91 packages compatible）、完整 pytest **514 passed in 4.64s**、sdist／wheel build、離線 CLI approve 與公開文案掃描均通過 | 完成 |
+## Current-truth matrix
 
-## 尚待作者或另行核准
+| Gate | Fresh evidence | 結果 |
+|---|---|---|
+| Git | closure 前 `main=origin/main=79fa210`、worktree clean；closure 以 feature branch／PR 交付 | 通過 |
+| CI | 最新 `main` CI success；closure PR 與 merge commit 另以同一 Windows workflow 驗證 | 通過 |
+| Release | `v0.2.0` annotated tag 指向 `2d53856`；Release 非 draft、非 prerelease | 通過；不移動 |
+| 官方來源 | 4／4 `VERIFIED_SNAPSHOT`、`changed_fields=[]`、`writes_performed=false` | 通過 |
+| Raw／semantic hash | 兩個 HTML raw hash 因網站 bytes 改變，但 semantic fingerprint 相同；附表二與附表五 raw／semantic hash 均相同 | 通過 |
+| 跨檔一致性 | manifest、runtime constants、README、fixtures、tests 為 `CONSISTENT` | 通過 |
+| 相依 | `uv lock --check`、92 packages compatible | 通過 |
+| 完整測試 | pytest **585 passed** | 通過 |
+| 金額契約 | 兩版 × CMS 2–8 × 三類 × 外籍看護 × 四種支出情境的 336 組矩陣，加上無條件捨去測試 | 通過 |
+| PII | 支援的臺灣身分證、電話、標示姓名遮蔽；public inputs 不接受 PII 欄位；固定診斷集洩漏 0 | 通過；不宣稱零風險 |
+| HITL | 未核准金額阻擋、approve／reject、registry 防竄改、adapter 換行回歸、發布內容與預覽逐字一致 | 通過 |
+| Unknown CMS | 只提供 CMS 2–8 參考，不產生個人化金額 | 通過 |
+| Build／CLI | sdist、wheel 與 `--offline-demo --approve` exit 0 | 通過 |
+| UI | 桌機、390 px、設定與 approve smoke 為 `UI_SMOKE_OK` | 通過 |
+| 公開展示 | CPU Basic runtime 可喚醒至 `RUNNING`、domain `READY`、僅雲端模式、console error 0 | 通過 |
+| Branch protection | final closure 合併後要求 CI、線性歷史與對話解決，禁止 force push／刪除並鎖定 `main` | 通過 |
 
-1. 若要公平比較目前三模式，新版雲端固定 20 題已按 8 calls／題、12k input／3k output 與當日單價重估為 **US$1.776** 上限；必須取得明確核准後才執行。現有雲端 `7 / 20` 僅是舊 workflow 歷史基線。
-2. `phase-4` tag／Release 已完成；後續開發應另開新版本，不移動或覆寫這個公開里程碑。
+## 安全契約
 
-## 可重跑的核心命令
+### 確定性金額
+
+照顧及專業服務額度、外籍看護 30% 調整、部分負擔、超額自費與合計自付全部由 Python 整數運算產生。外籍看護額度與部分負擔都使用整數乘法後除以 100，符合無條件捨去；模型輸出的未核准幣值不能取代工具結果。
+
+### PII 邊界
+
+PII middleware 與 service boundary 會遮蔽已支援的臺灣身分證、電話及標示姓名模式，工具與公開輸入 schema 也不接受不必要的 PII 欄位。這是 defense-in-depth，不是收集真實個資的授權；公開頁面仍明確要求不要輸入姓名、身分證、電話或地址。
+
+### HITL verbatim lock
+
+確定性 renderer 先建立完整 Markdown 草稿與 content-derived report ID。只有 registry 中相同 ID 與逐字相同內容能發布；approve 回傳人工看到的 preview 原文，reject 不發布，重複 approve 只回傳既有發布內容。
+
+## Frozen boundary
+
+- 不新增 Agent framework。
+- 不新增或重跑模型 benchmark。
+- 不自動核准資格。
+- 不擴大醫療或法律主張。
+- 不因新法規資訊自動修改 rule engine。
+- 不移動或覆寫 `v0.2.0` tag／Release。
+- 每月 rule-source audit 保留唯讀監測；任何 `REVIEW_REQUIRED` 或 `CHECK_UNAVAILABLE` 都只產生差異證據並停止。
+
+## 可重跑命令
 
 ```powershell
 uv lock --check
 uv sync --locked --all-groups
-uv run pytest -q
+uv pip check
 uv run python scripts\export_public_evaluation.py
+uv run pytest -q
+uv build
 uv run ltc-benefit-agent --offline-demo --approve
 ```

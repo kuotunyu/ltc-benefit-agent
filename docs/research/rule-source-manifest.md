@@ -6,7 +6,7 @@
 
 建立日期：2026-07-23
 
-狀態：v0.2-P1–P4 驗收證據已齊備；待同步最新 release candidate、確認 CI／Build，並建立 `v0.2.0` tag／Release。
+狀態：`v0.2.0` 已發布；2026-08-20 current-truth closure audit 通過，專案標記為 `Frozen / Portfolio Complete`。
 
 ## 目的
 
@@ -190,7 +190,7 @@ CLI 的 `--output`、`--public-output` 與 `--review-output` 必須使用不同�
 
 排程呼叫 CLI 時強制加入 `--quiet`：完整 JSON 只寫入 `$RUNNER_TEMP`，Actions log 僅保留逐來源 `source_id`／狀態與公開摘要路徑，不得藉 stdout 繞過上述公開欄位白名單。本機人工稽核若未使用 `--quiet`，仍可在操作者自己的終端檢視完整 JSON；若只檢查個別來源或載入既有 `--input` 證據，則只能保留私有結果，不能輸出公開摘要。這項限制讓公開摘要的時間與內容都綁定當次實際抓取，而不是任意封存檔。
 
-封裝的 `approved-audit-status-v1.json` 保存目前人工核准狀態。該檔必須與正式 manifest 版本相符，目前記錄 manifest `2026-07-23.1`、最後成功稽核日 2026-07-23、4／4 來源通過與 `writes_performed=false`。該檔供稽核與一致性測試，不在 Gradio 民眾操作頁呈現；排程只產生新證據，不會自動修改或升格核准狀態，只有成功的 4／4 稽核再經作者人工驗收，才能另行更新。
+封裝的 `approved-audit-status-v1.json` 保存目前人工核准狀態。該檔必須與正式 manifest 版本相符，目前記錄 manifest `2026-07-23.1`、最後成功稽核日 2026-08-20、4／4 來源通過與 `writes_performed=false`。該檔供稽核與一致性測試，不在 Gradio 民眾操作頁呈現；排程只產生新證據，不會自動修改或升格核准狀態，只有成功的 4／4 稽核再經作者人工驗收，才能另行更新。
 
 ## 執行與人工 gate
 
@@ -198,5 +198,5 @@ CLI 的 `--output`、`--public-output` 與 `--review-output` 必須使用不同�
 2. 線上 checker 是獨立操作，不放進 Gradio 民眾請求路徑。
 3. 稽核 artifact 預設放在忽略版控的位置；公開摘要不得含 token、個資、原始對話或不允許再散布的附件。
 4. 只有作者檢查 `changed_fields` 並明確核准後，才能另外修改規則、測試、metadata、README 與正式 manifest。
-5. 規則修改、人工核准、Git commit／tag／Release 都是分開的步驟；Agent 不執行 Git。
+5. 規則修改、人工核准、Git commit／tag／Release 都是分開的步驟；唯讀 checker 不執行 Git。
 6. Gradio 不讀取或顯示內部核准狀態，也不在民眾對話或報告產生期間連線官方來源。
