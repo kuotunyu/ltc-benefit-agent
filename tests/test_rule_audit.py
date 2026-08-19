@@ -588,11 +588,11 @@ def test_packaged_approved_status_matches_manifest_and_renders_static_ui() -> No
 
     assert default_approved_status_path().is_file()
     assert status.manifest_version == load_manifest().manifest_version
-    assert status.last_successful_audit_date.isoformat() == "2026-07-23"
+    assert status.last_successful_audit_date.isoformat() == "2026-08-20"
     assert status.source_count == status.verified_source_count == 4
     assert status.writes_performed is False
     assert "法規快照 2026-07-23.1 已核准" in rendered
-    assert "最後成功稽核：2026-07-23 · 4/4 官方來源一致" in rendered
+    assert "最後成功稽核：2026-08-20 · 4/4 官方來源一致" in rendered
     assert "對話期間不即時抓取法規" in rendered
 
 

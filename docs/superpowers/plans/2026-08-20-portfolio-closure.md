@@ -30,16 +30,17 @@
 - Modify: `docs/research/rule-source-manifest.md`
 - Modify: `docs/research/rules-audit.md`
 - Modify: `src/ltc_benefit_agent/audit/data/approved-audit-status-v1.json`
+- Modify: `tests/test_rule_audit.py`
 
 **Interfaces:**
 - Consumes: 2026-08-20 4/4 `VERIFIED_SNAPSHOT`、`CONSISTENT`、585 tests、GitHub／Space live evidence。
 - Produces: 與 manifest 語意不變、可由現有 consistency checker 驗證的公開 closure 狀態。
 
-- [ ] **Step 1: 更新 audit evidence 日期**
+- [x] **Step 1: 更新 audit evidence 日期**
 
-將 `approved-audit-status-v1.json` 的 `last_successful_audit_date` 從 `2026-07-23` 改為 `2026-08-20`；保留 `manifest_version`、source counts 與 `writes_performed=false` 不變。
+將 `approved-audit-status-v1.json` 的 `last_successful_audit_date` 從 `2026-07-23` 改為 `2026-08-20`，並同步 packaged status 的真實輸出斷言；保留 `manifest_version`、source counts 與 `writes_performed=false` 不變。
 
-- [ ] **Step 2: 更新 README 首段與狀態**
+- [x] **Step 2: 更新 README 首段與狀態**
 
 在 README 標題與 badges 後加入第一人稱家庭照護／高齡社會動機，以及：
 
@@ -49,11 +50,11 @@
 
 保留非正式核定免責聲明，不新增任何醫療或法律結論。
 
-- [ ] **Step 3: 修正 release 與 research 文件的舊狀態**
+- [x] **Step 3: 修正 release 與 research 文件的舊狀態**
 
 把「v0.2.0 尚待建立」、514 tests、91 packages、缺失的 `PLAN.md`／`PROGRESS.md` 連結改為 fresh evidence；加入 GitHub protection 與 Space 同步在發布後核對的明確 gate。
 
-- [ ] **Step 4: 執行文件與 consistency 驗證**
+- [x] **Step 4: 執行文件與 consistency 驗證**
 
 Run:
 
@@ -65,10 +66,10 @@ git diff --check
 
 Expected: pytest exit 0、`project_consistency: CONSISTENT`、diff check exit 0。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
-git add README.md docs/release-checklist.md docs/research/completion-audit.md docs/research/rule-source-manifest.md docs/research/rules-audit.md src/ltc_benefit_agent/audit/data/approved-audit-status-v1.json
+git add README.md docs/release-checklist.md docs/research/completion-audit.md docs/research/rule-source-manifest.md docs/research/rules-audit.md src/ltc_benefit_agent/audit/data/approved-audit-status-v1.json tests/test_rule_audit.py
 git commit -m "docs: 完成作品集封存驗收"
 ```
 
