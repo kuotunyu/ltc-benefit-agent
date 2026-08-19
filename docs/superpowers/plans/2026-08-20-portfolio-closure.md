@@ -82,7 +82,7 @@ git commit -m "docs: 完成作品集封存驗收"
 - Consumes: Task 1 closure commit。
 - Produces: 可合併的 GitHub PR 與完整 fresh verification evidence。
 
-- [ ] **Step 1: 執行完整本機 gates**
+- [x] **Step 1: 執行完整本機 gates**
 
 Run:
 
@@ -98,7 +98,7 @@ uv run ltc-benefit-agent --offline-demo --approve
 
 Expected: 92 packages compatible、`PUBLIC_EVAL_OK runs=2`、585 passed、sdist／wheel 成功、offline demo exit 0。
 
-- [ ] **Step 2: 執行桌機／行動版／approve smoke**
+- [x] **Step 2: 執行桌機／行動版／approve smoke**
 
 Run:
 
