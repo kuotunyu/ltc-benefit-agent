@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/kuotunyu/ltc-benefit-agent/actions/workflows/ci.yml)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-585%20passed-success)
+![Tests](https://img.shields.io/badge/Tests-586%20passed-success)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **狀態：Frozen / Portfolio Complete（2026-08-20）** — `v0.2.0` 已完成 current-truth、發布與公開展示驗收；後續只保留官方來源監測與必要安全維護。
