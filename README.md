@@ -13,7 +13,7 @@
 
 > **免責聲明**：本專案僅供初步試算與學術研究，非正式資格核定或法律、醫療建議；最終資格與金額以照管中心、地方主管機關與 1966 專線核定為準。
 
-[線上 Demo](https://huggingface.co/spaces/steven0226/ltc-benefit-agent) · [Deployment lineage](docs/deployment-lineage.md) · [v0.2.0 Release](https://github.com/kuotunyu/ltc-benefit-agent/releases/tag/v0.2.0)
+[線上 Demo](https://huggingface.co/spaces/steven0226/ltc-benefit-agent) · [Deployment lineage](https://github.com/kuotunyu/ltc-benefit-agent/blob/main/docs/deployment-lineage.md) · [v0.2.0 Release](https://github.com/kuotunyu/ltc-benefit-agent/releases/tag/v0.2.0)
 
 ![ltc-benefit-agent 多輪試算介面](docs/assets/gradio-showcase.png)
 

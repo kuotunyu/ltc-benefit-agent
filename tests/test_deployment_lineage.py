@@ -29,7 +29,10 @@ def test_deployment_lineage_records_all_branch_baselines() -> None:
     )
     public_entry_points = (
         (readme_text, "Tests-586%20passed-success"),
-        (readme_text, "(docs/deployment-lineage.md)"),
+        (
+            readme_text,
+            "https://github.com/kuotunyu/ltc-benefit-agent/blob/main/docs/deployment-lineage.md",
+        ),
         (checklist_text, "(deployment-lineage.md)"),
     )
 
@@ -37,3 +40,6 @@ def test_deployment_lineage_records_all_branch_baselines() -> None:
         assert marker in text, f"deployment lineage 缺少必要標記：{marker}"
     for source_text, marker in public_entry_points:
         assert marker in source_text, f"公開入口缺少必要標記：{marker}"
+    assert "](docs/deployment-lineage.md)" not in readme_text, (
+        "README 不應使用相對 deployment lineage 連結"
+    )
