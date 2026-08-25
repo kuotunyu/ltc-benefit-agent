@@ -91,7 +91,7 @@ sequenceDiagram
 | **12B 地端基準 Adapter** | 跨模型能力對照基準 | 3 / 20 | **20 / 20** | **13 / 13** | **0 筆** |
 | **雲端歷史基線** | 商業 API 對照組 | 7 / 20 | 基線未重跑 | 12 / 13 | 0 筆 |
 
-*註：585 項單元與整合測試全數通過，詳細評測細目請參閱 [eval/results/local-models-v3.json](eval/results/local-models-v3.json)。表中 PII 數字只代表固定診斷集，不代表公開環境的零風險保證。*
+*註：586 項單元與整合測試全數通過，詳細評測細目請參閱 [eval/results/local-models-v3.json](eval/results/local-models-v3.json)。表中 PII 數字只代表固定診斷集，不代表公開環境的零風險保證。*
 
 ---
 
@@ -130,7 +130,7 @@ sequenceDiagram
 
 需求：Python 3.11+、`uv`。
 
-### 1. 安裝依賴與執行測試 (585 passed)
+### 1. 安裝依賴與執行測試 (586 passed)
 
 ```powershell
 uv sync --locked
