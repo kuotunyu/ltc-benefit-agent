@@ -2,6 +2,8 @@
 
 本文件把專案完成後仍需由作者帳號操作的步驟集中在一處。Agent 不執行 Git、不建立託管應用，也不代填 Secrets。
 
+目前 GitHub、local main 與 Hugging Face Space 的部署真相及安全更新順序，以 [Deployment lineage](deployment-lineage.md) 為準；以下清單保留各階段的歷史驗收紀錄，不重寫其時間順序。
+
 ## 目前公開狀態（2026-08-20）
 
 - 狀態：`Frozen / Portfolio Complete`；最終產品版本維持 `v0.2.0`，annotated tag 與正式 Release 不移動。
