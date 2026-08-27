@@ -4,7 +4,7 @@
 
 作者自行建立託管應用、設定 secret 與推送；Agent 不執行 Git 或帳號操作。
 
-從本機驗證、GitHub Push、Space Settings 到公開頁面 smoke 的逐項流程，見[發布與公開驗收清單](release-checklist.md)。
+GitHub 與 Hugging Face Space 的來源邊界、安全更新流程及驗證原則，見 [Deployment lineage](deployment-lineage.md)。
 
 必要設定：
 
@@ -42,4 +42,4 @@ uv run python app.py
 
 本機連接埠由 `GRADIO_SERVER_PORT` 指定；若被占用，程式會停止啟動並要求換 port，不會關閉既有服務。
 
-Space Build 完成後，至少確認：只顯示雲端 provider、CMS 未知時不產生個人化金額、完整報告會先進入 approve／reject，以及手機寬度下可完成兩輪對話。完整驗收案例列在發布清單；請使用虛構資料，不要把真實個資當 smoke input。
+Space Build 完成後，至少確認：只顯示雲端 provider、CMS 未知時不產生個人化金額、完整報告會先進入 approve／reject，以及手機寬度下可完成兩輪對話。以上案例都要使用虛構資料，不要把真實個資當 smoke input。
