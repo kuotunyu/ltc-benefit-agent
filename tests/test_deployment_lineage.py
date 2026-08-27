@@ -43,3 +43,6 @@ def test_deployment_lineage_records_all_branch_baselines() -> None:
     assert "](docs/deployment-lineage.md)" not in readme_text, (
         "README 不應使用相對 deployment lineage 連結"
     )
+    assert "release-checklist" not in hosting_text, (
+        "hosting 文件不應依賴已移除的 release checklist"
+    )
