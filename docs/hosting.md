@@ -4,7 +4,7 @@
 
 作者自行建立託管應用、設定 secret 與推送；Agent 不執行 Git 或帳號操作。
 
-從本機驗證、GitHub Push、Space Settings 到公開頁面 smoke 的逐項流程，見[發布與公開驗收清單](release-checklist.md)。
+GitHub 與 Hugging Face Space 的來源邊界、安全更新流程及驗證原則，見 [Deployment lineage](deployment-lineage.md)。
 
 必要設定：
 
